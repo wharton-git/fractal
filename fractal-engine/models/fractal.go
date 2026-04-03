@@ -5,14 +5,20 @@ import (
 )
 
 type FractalRequest struct {
-	Type       string `json:"type"`       // "mandelbrot" ou "barnsley"
-	Iterations int    `json:"iterations"`
-	Size       string `json:"size"`       // "small", "medium", "large"
+	Type       string  `json:"type"`
+	Iterations int     `json:"iterations"`
+	Size       string  `json:"size"`
+
+	CenterX float64 `json:"centerX"`
+	CenterY float64 `json:"centerY"`
+	Zoom    float64 `json:"zoom"`
+	DevMode bool `json:"devMode"`
 }
 
 type Point struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
+	I int     `json:"i"`
 }
 
 type FractalResponse struct {

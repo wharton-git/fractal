@@ -2,8 +2,10 @@ package controllers
 
 import (
 	"fractal-engine/models"
+	"math"
 	"math/rand"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -25,11 +27,20 @@ func GenerateFractal(c *gin.Context) {
 		return
 	}
 
+	isDev := req.DevMode
+
 	var points []models.Point
 
 	switch req.Type {
 	case "mandelbrot":
-		points = generateMandelbrot(req.Iterations, req.Size)
+		points = generateMandelbrot(
+			req.Iterations,
+			req.Size,
+			req.CenterX,
+			req.CenterY,
+			req.Zoom,
+			isDev,
+		)
 	case "barnsley":
 		points = generateBarnsley(req.Iterations)
 	}
@@ -37,26 +48,46 @@ func GenerateFractal(c *gin.Context) {
 	c.JSON(http.StatusOK, models.FractalResponse{Points: points})
 }
 
-func generateMandelbrot(iters int, sizeStr string) []models.Point {
+func generateMandelbrot(iters int, sizeStr string, cx, cy, zoom float64, dev bool) []models.Point {
 
-	res := 100
-	if sizeStr == "medium" {
-		res = 300
+	if zoom <= 0 {
+		zoom = 1
 	}
-	if sizeStr == "large" {
-		res = 600
+
+	if dev {
+		iters = 100
+		zoom = 1
+	} else {
+		iters = int(float64(iters) * (1 + math.Log10(zoom+1)))
+
+		if iters > 5000 {
+			iters = 5000
+		}
+	}
+
+	res := 80
+	if !dev {
+		if sizeStr == "medium" {
+			res = 300
+		}
+		if sizeStr == "large" {
+			res = 600
+		}
 	}
 
 	points := make([]models.Point, 0)
 
+	scale := 1.0 / zoom
+
 	for px := 0; px < res; px++ {
 		for py := 0; py < res; py++ {
 
-			x0 := float64(px)/float64(res)*3.5 - 2.5
-			y0 := float64(py)/float64(res)*2.0 - 1.0
+			x0 := cx + (float64(px)-float64(res)/2)*scale/float64(res)*3.5
+			y0 := cy + (float64(py)-float64(res)/2)*scale/float64(res)*2.0
 
 			x, y := 0.0, 0.0
 			iteration := 0
+
 			for x*x+y*y <= 4 && iteration < iters {
 				xtemp := x*x - y*y + x0
 				y = 2*x*y + y0
@@ -64,11 +95,14 @@ func generateMandelbrot(iters int, sizeStr string) []models.Point {
 				iteration++
 			}
 
-			if iteration == iters {
-				points = append(points, models.Point{X: float64(px), Y: float64(py)})
-			}
+			points = append(points, models.Point{
+				X: float64(px),
+				Y: float64(py),
+				I: iteration,
+			})
 		}
 	}
+
 	return points
 }
 
