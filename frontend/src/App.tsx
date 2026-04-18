@@ -40,11 +40,17 @@ const initialForm: FormState = {
 const MAIN_REQUEST_LIMIT = 20;
 const MONITORING_REQUEST_LIMIT = 9;
 const MANUAL_MONITORING_INTERVAL_MS = 5000;
-const TEST_MONITORING_INTERVAL_MS = 500;
+const TEST_STATUS_MONITORING_INTERVAL_MS = 100;
+const TEST_META_MONITORING_INTERVAL_MS = 4000;
 const BACKEND_CHECKS = ["health", "info", "status"] as const;
+const TEST_META_BACKEND_CHECKS = ["health", "info"] as const;
+
+type BackendCheckType = (typeof BACKEND_CHECKS)[number];
+type RequestLogMode = "main" | "monitoring" | "silent";
 
 type RequestSource =
 	| "user"
+	| "manual_check"
 	| "manual_monitoring"
 	| "temporary_monitoring"
 	| "post_test_refresh";
@@ -52,9 +58,27 @@ type RequestSource =
 type ManagedRequestKind = "test" | "monitoring";
 
 type PerformRequestOptions = {
-	logToMain?: boolean;
+	logMode?: RequestLogMode;
 	surfaceErrors?: boolean;
 	source?: RequestSource;
+};
+
+type RefreshRequestOptions = {
+	source: RequestSource;
+	surfaceErrors?: boolean;
+	logMode?: RequestLogMode;
+	reuseInFlight?: boolean;
+};
+
+type RefreshBackendSnapshotOptions = {
+	source: RequestSource;
+	surfaceErrors?: boolean;
+	stopOnNetworkFailure?: boolean;
+	showLoadingState?: boolean;
+	trackCheckingState?: boolean;
+	sections?: ReadonlyArray<BackendCheckType>;
+	perSectionLogMode?: Partial<Record<BackendCheckType, RequestLogMode>>;
+	reuseInFlight?: boolean;
 };
 
 const getBackendStateFromRequest = (request: RequestRecord): BackendState => {
@@ -67,6 +91,9 @@ const getBackendStateFromRequest = (request: RequestRecord): BackendState => {
 
 const isAbortError = (error: unknown) =>
 	error instanceof DOMException && error.name === "AbortError";
+
+const isStopSensitiveSource = (source: RequestSource) =>
+	source === "temporary_monitoring" || source === "post_test_refresh";
 
 const sleepWithSignal = (durationMs: number, signal: AbortSignal) =>
 	new Promise<void>((resolve, reject) => {
@@ -128,7 +155,13 @@ function App() {
 	const [latestStatus, setLatestStatus] = useState<StatusPayload | null>(null);
 	const [latestInfo, setLatestInfo] = useState<InfoPayload | null>(null);
 	const [lastBackendCheckAt, setLastBackendCheckAt] = useState<string | null>(null);
-	const monitoringInFlightRef = useRef(false);
+	const backendRefreshInFlightRef = useRef<
+		Record<BackendCheckType, Promise<RequestRecord | null> | null>
+	>({
+		health: null,
+		info: null,
+		status: null,
+	});
 	const stopRequestedRef = useRef(false);
 	const activeControllersRef = useRef(
 		new Map<
@@ -151,10 +184,10 @@ function App() {
 	);
 	const monitoringModeLabel = isMonitoring
 		? isTemporaryMonitoring
-			? "Actif (manuel 5s + test 0,5s)"
+			? "Actif (manuel 5s + test status 0,9s)"
 			: "Actif (manuel | 5s)"
 		: isTemporaryMonitoring
-			? "Actif (temporaire | 0,5s)"
+			? "Actif (test status 0,9s | meta 4s)"
 			: "Arrete";
 	const liveObservedPods = summarizePods([...requests, ...monitoringRequests]);
 	const selectedRequest =
@@ -240,12 +273,12 @@ function App() {
 		options: PerformRequestOptions = {},
 	) => {
 		const {
-			logToMain = true,
+			logMode = "main",
 			surfaceErrors = true,
-			source = logToMain ? "user" : "manual_monitoring",
+			source = logMode === "main" ? "user" : "manual_monitoring",
 		} = options;
 		const managedRequest = registerController(
-			logToMain ? "test" : "monitoring",
+			logMode === "main" ? "test" : "monitoring",
 			source,
 		);
 
@@ -256,9 +289,11 @@ function App() {
 			updateBackendSnapshot(request);
 
 			if (!request.cancelled) {
-				if (logToMain) {
+				if (logMode === "main") {
 					appendMainRequest(request);
-				} else {
+				}
+
+				if (logMode === "monitoring") {
 					appendMonitoringRequest(request);
 				}
 			}
@@ -281,91 +316,207 @@ function App() {
 		}
 	};
 
-	const runBackendCheck = useEffectEvent(
-		async ({
-			surfaceErrors,
-			stopOnNetworkFailure,
+	const runManagedBackendRefresh = (
+		testType: BackendCheckType,
+		{
 			source,
-			showLoadingState,
-		}: {
-			surfaceErrors: boolean;
-			stopOnNetworkFailure: boolean;
-			source: RequestSource;
-			showLoadingState: boolean;
-		}) => {
-			if (monitoringInFlightRef.current) {
-				return false;
-			}
+			surfaceErrors = false,
+			logMode,
+			reuseInFlight = true,
+		}: RefreshRequestOptions,
+	) => {
+		if (stopRequestedRef.current && isStopSensitiveSource(source)) {
+			return Promise.resolve(null);
+		}
 
-			monitoringInFlightRef.current = true;
-			setIsCheckingBackend(true);
-			if (showLoadingState) {
-				setBackendState("loading");
-			}
+		const inFlightRequest = backendRefreshInFlightRef.current[testType];
+		if (inFlightRequest) {
+			return reuseInFlight ? inFlightRequest : Promise.resolve(null);
+		}
 
-			try {
-				let hasCompletedRequest = false;
-
-				for (const testType of BACKEND_CHECKS) {
-					if (
-						stopRequestedRef.current &&
-						source !== "manual_monitoring"
-					) {
-						break;
-					}
-
-					const request = await performRequest(testType, {
-						logToMain: false,
-						surfaceErrors,
-						source,
-					});
-
-					if (request.cancelled) {
-						break;
-					}
-
-					hasCompletedRequest = true;
-
-					if (stopOnNetworkFailure && request.statusCode === 0) {
-						break;
-					}
-				}
-
-				if (hasCompletedRequest) {
+		const refreshPromise = performRequest(testType, {
+			logMode:
+				logMode ??
+				(source === "manual_monitoring" || source === "manual_check"
+					? "monitoring"
+					: "silent"),
+			surfaceErrors,
+			source,
+		})
+			.then((request) => {
+				if (!request.cancelled) {
 					setLastBackendCheckAt(new Date().toISOString());
 				}
-				return hasCompletedRequest;
-			} finally {
-				monitoringInFlightRef.current = false;
+
+				return request;
+			})
+			.finally(() => {
+				backendRefreshInFlightRef.current[testType] = null;
+			});
+
+		backendRefreshInFlightRef.current[testType] = refreshPromise;
+		return refreshPromise;
+	};
+
+	const refreshStatusRequest = (options: RefreshRequestOptions) =>
+		runManagedBackendRefresh("status", options);
+
+	const refreshInfoRequest = (options: RefreshRequestOptions) =>
+		runManagedBackendRefresh("info", options);
+
+	const refreshHealthRequest = (options: RefreshRequestOptions) =>
+		runManagedBackendRefresh("health", options);
+
+	const refreshBackendSnapshotRequest = async ({
+		source,
+		surfaceErrors = false,
+		stopOnNetworkFailure = true,
+		showLoadingState = false,
+		trackCheckingState = false,
+		sections = BACKEND_CHECKS,
+		perSectionLogMode = {},
+		reuseInFlight = true,
+	}: RefreshBackendSnapshotOptions) => {
+		if (stopRequestedRef.current && isStopSensitiveSource(source)) {
+			return false;
+		}
+
+		if (trackCheckingState) {
+			setIsCheckingBackend(true);
+		}
+		if (showLoadingState) {
+			setBackendState("loading");
+		}
+
+		try {
+			let hasCompletedRequest = false;
+
+			for (const testType of sections) {
+				if (stopRequestedRef.current && isStopSensitiveSource(source)) {
+					break;
+				}
+
+				const request =
+					testType === "status"
+						? await refreshStatusRequest({
+								source,
+								surfaceErrors,
+								logMode: perSectionLogMode.status,
+								reuseInFlight,
+							})
+						: testType === "info"
+							? await refreshInfoRequest({
+									source,
+									surfaceErrors,
+									logMode: perSectionLogMode.info,
+									reuseInFlight,
+								})
+							: await refreshHealthRequest({
+									source,
+									surfaceErrors,
+									logMode: perSectionLogMode.health,
+									reuseInFlight,
+								});
+
+				if (!request) {
+					continue;
+				}
+
+				if (request.cancelled) {
+					break;
+				}
+
+				hasCompletedRequest = true;
+
+				if (stopOnNetworkFailure && request.statusCode === 0) {
+					break;
+				}
+			}
+
+			return hasCompletedRequest;
+		} finally {
+			if (trackCheckingState) {
 				setIsCheckingBackend(false);
 			}
 		}
+	};
+
+	const refreshStatus = useEffectEvent(
+		async (options: RefreshRequestOptions) => refreshStatusRequest(options),
+	);
+
+	const refreshBackendSnapshot = useEffectEvent(
+		async (options: RefreshBackendSnapshotOptions) =>
+			refreshBackendSnapshotRequest(options),
 	);
 
 	useEffect(() => {
-		if (!isMonitoringActive) {
+		if (!isMonitoring) {
 			return;
 		}
 
-		const intervalMs = isTemporaryMonitoring
-			? TEST_MONITORING_INTERVAL_MS
-			: MANUAL_MONITORING_INTERVAL_MS;
-
 		const intervalId = window.setInterval(() => {
-			void runBackendCheck({
+			void refreshBackendSnapshot({
+				source: "manual_monitoring",
 				surfaceErrors: false,
 				stopOnNetworkFailure: true,
-				source: isTemporaryMonitoring
-					? "temporary_monitoring"
-					: "manual_monitoring",
-				showLoadingState: false,
+				sections: BACKEND_CHECKS,
+				perSectionLogMode: {
+					health: "monitoring",
+					info: "monitoring",
+					status: "monitoring",
+				},
+				reuseInFlight: false,
 			});
-		}, intervalMs);
+		}, MANUAL_MONITORING_INTERVAL_MS);
 
 		return () => {
 			window.clearInterval(intervalId);
 		};
-	}, [isMonitoringActive, isTemporaryMonitoring, runBackendCheck]);
+	}, [isMonitoring]);
+
+	useEffect(() => {
+		if (!isTemporaryMonitoring) {
+			return;
+		}
+
+		const intervalId = window.setInterval(() => {
+			void refreshStatus({
+				source: "temporary_monitoring",
+				surfaceErrors: false,
+				logMode: "silent",
+				reuseInFlight: false,
+			});
+		}, TEST_STATUS_MONITORING_INTERVAL_MS);
+
+		return () => {
+			window.clearInterval(intervalId);
+		};
+	}, [isTemporaryMonitoring]);
+
+	useEffect(() => {
+		if (!isTemporaryMonitoring) {
+			return;
+		}
+
+		const intervalId = window.setInterval(() => {
+			void refreshBackendSnapshot({
+				source: "temporary_monitoring",
+				surfaceErrors: false,
+				stopOnNetworkFailure: true,
+				sections: TEST_META_BACKEND_CHECKS,
+				perSectionLogMode: {
+					health: "silent",
+					info: "silent",
+				},
+				reuseInFlight: false,
+			});
+		}, TEST_META_MONITORING_INTERVAL_MS);
+
+		return () => {
+			window.clearInterval(intervalId);
+		};
+	}, [isTemporaryMonitoring]);
 
 	useEffect(() => {
 		return () => {
@@ -382,27 +533,40 @@ function App() {
 		setNotice(null);
 
 		try {
-			void runBackendCheck({
-				surfaceErrors: false,
-				stopOnNetworkFailure: true,
+			void refreshStatusRequest({
 				source: "temporary_monitoring",
-				showLoadingState: false,
+				surfaceErrors: false,
+				logMode: "silent",
+				reuseInFlight: false,
 			});
 
 			const request = await performRequest(form.testType, {
 				source: "user",
 			});
 
+			setIsTemporaryMonitoring(false);
+			abortActiveControllers(
+				(entry) => entry.source === "temporary_monitoring",
+			);
+
 			if (!request.cancelled && !stopRequestedRef.current) {
-				await runBackendCheck({
+				await refreshBackendSnapshotRequest({
 					surfaceErrors: false,
 					stopOnNetworkFailure: true,
 					source: "post_test_refresh",
-					showLoadingState: false,
+					sections: BACKEND_CHECKS,
+					perSectionLogMode: {
+						health: "silent",
+						info: "silent",
+						status: "silent",
+					},
 				});
 			}
 		} finally {
 			setIsTemporaryMonitoring(false);
+			abortActiveControllers(
+				(entry) => entry.source === "temporary_monitoring",
+			);
 			setIsRunning(false);
 			setIsStopRequested(false);
 			stopRequestedRef.current = false;
@@ -418,11 +582,10 @@ function App() {
 		setNotice(null);
 
 		try {
-			await runBackendCheck({
-				surfaceErrors: false,
-				stopOnNetworkFailure: true,
+			await refreshStatusRequest({
 				source: "temporary_monitoring",
-				showLoadingState: false,
+				surfaceErrors: false,
+				logMode: "silent",
 			});
 
 			for (let index = 0; index < form.repeatCount; index += 1) {
@@ -458,16 +621,29 @@ function App() {
 				}
 			}
 
+			setIsTemporaryMonitoring(false);
+			abortActiveControllers(
+				(entry) => entry.source === "temporary_monitoring",
+			);
+
 			if (!stopRequestedRef.current) {
-				await runBackendCheck({
+				await refreshBackendSnapshotRequest({
 					surfaceErrors: false,
 					stopOnNetworkFailure: true,
 					source: "post_test_refresh",
-					showLoadingState: false,
+					sections: BACKEND_CHECKS,
+					perSectionLogMode: {
+						health: "silent",
+						info: "silent",
+						status: "silent",
+					},
 				});
 			}
 		} finally {
 			setIsTemporaryMonitoring(false);
+			abortActiveControllers(
+				(entry) => entry.source === "temporary_monitoring",
+			);
 			setIsRunning(false);
 			setSequenceProgress(null);
 			setIsStopRequested(false);
@@ -476,26 +652,41 @@ function App() {
 	};
 
 	const handleCheckBackend = async () => {
-		await runBackendCheck({
+		await refreshBackendSnapshotRequest({
 			surfaceErrors: true,
 			stopOnNetworkFailure: false,
-			source: "manual_monitoring",
+			source: "manual_check",
 			showLoadingState: true,
+			trackCheckingState: true,
+			sections: BACKEND_CHECKS,
+			perSectionLogMode: {
+				health: "monitoring",
+				info: "monitoring",
+				status: "monitoring",
+			},
 		});
 	};
 
 	const handleToggleMonitoring = async () => {
 		if (isMonitoring) {
 			setIsMonitoring(false);
+			abortActiveControllers(
+				(entry) => entry.source === "manual_monitoring",
+			);
 			return;
 		}
 
 		setIsMonitoring(true);
-		await runBackendCheck({
+		await refreshBackendSnapshotRequest({
 			surfaceErrors: false,
 			stopOnNetworkFailure: true,
 			source: "manual_monitoring",
-			showLoadingState: false,
+			sections: BACKEND_CHECKS,
+			perSectionLogMode: {
+				health: "monitoring",
+				info: "monitoring",
+				status: "monitoring",
+			},
 		});
 	};
 
