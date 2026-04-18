@@ -16,12 +16,12 @@ import { ObservedPods } from "./components/ObservedPods";
 import { OverviewCards } from "./components/OverviewCards";
 import { RequestResults } from "./components/RequestResults";
 import { runDemoRequest } from "./lib/api";
-import { summarizePods } from "./lib/format";
 import {
 	type AppRuntimeState,
 	type BackendState,
 	type FormState,
 	type InfoPayload,
+	type PodObservation,
 	type RequestRecord,
 	type StatusPayload,
 	isInfoPayload,
@@ -95,6 +95,26 @@ const isAbortError = (error: unknown) =>
 const isStopSensitiveSource = (source: RequestSource) =>
 	source === "temporary_monitoring" || source === "post_test_refresh";
 
+const isTrackablePodName = (
+	podName: string | null | undefined,
+): podName is string =>
+	Boolean(
+		podName &&
+			podName !== "unreachable" &&
+			podName !== "cancelled" &&
+			podName !== "unknown",
+	);
+
+const getMostRecentTimestamp = (currentTimestamp: string | null, nextTimestamp: string) => {
+	if (!currentTimestamp) {
+		return nextTimestamp;
+	}
+
+	return new Date(nextTimestamp).getTime() > new Date(currentTimestamp).getTime()
+		? nextTimestamp
+		: currentTimestamp;
+};
+
 const sleepWithSignal = (durationMs: number, signal: AbortSignal) =>
 	new Promise<void>((resolve, reject) => {
 		if (signal.aborted) {
@@ -155,6 +175,9 @@ function App() {
 	const [latestStatus, setLatestStatus] = useState<StatusPayload | null>(null);
 	const [latestInfo, setLatestInfo] = useState<InfoPayload | null>(null);
 	const [lastBackendCheckAt, setLastBackendCheckAt] = useState<string | null>(null);
+	const [observedPodsByName, setObservedPodsByName] = useState<
+		Record<string, PodObservation>
+	>({});
 	const backendRefreshInFlightRef = useRef<
 		Record<BackendCheckType, Promise<RequestRecord | null> | null>
 	>({
@@ -189,7 +212,30 @@ function App() {
 		: isTemporaryMonitoring
 			? "Actif (test status 0,9s | meta 4s)"
 			: "Arrete";
-	const liveObservedPods = summarizePods([...requests, ...monitoringRequests]);
+	const observedPods = Object.values(observedPodsByName);
+	const liveObservedPods = [...observedPods].sort((left, right) => {
+		const requestCountDifference =
+			(right.requestCount ?? -1) - (left.requestCount ?? -1);
+
+		if (requestCountDifference !== 0) {
+			return requestCountDifference;
+		}
+
+		return new Date(right.lastSeen).getTime() - new Date(left.lastSeen).getTime();
+	});
+	const mostRecentlySeenPod = observedPods.reduce<PodObservation | null>(
+		(currentLatest, pod) => {
+			if (!currentLatest) {
+				return pod;
+			}
+
+			return new Date(pod.lastSeen).getTime() >
+				new Date(currentLatest.lastSeen).getTime()
+				? pod
+				: currentLatest;
+		},
+		null,
+	);
 	const selectedRequest =
 		deferredRequests.find((request) => request.id === selectedRequestId) ??
 		deferredRequests[0] ??
@@ -206,9 +252,7 @@ function App() {
 	const latestPodName =
 		latestStatus?.podName ??
 		latestInfo?.podName ??
-		[...requests, ...monitoringRequests].find(
-			(request) => request.podName !== "unreachable",
-		)?.podName ??
+		mostRecentlySeenPod?.podName ??
 		null;
 
 	const registerController = (kind: ManagedRequestKind, source: RequestSource) => {
@@ -246,14 +290,46 @@ function App() {
 			return;
 		}
 
-		setBackendState(getBackendStateFromRequest(request));
+		const statusPayload =
+			request.ok && isStatusPayload(request.response) ? request.response : null;
+		const infoPayload =
+			request.ok && isInfoPayload(request.response) ? request.response : null;
+		const podName = statusPayload?.podName ?? infoPayload?.podName ?? request.podName;
+		const lastSeenAt =
+			statusPayload?.timestamp ?? infoPayload?.timestamp ?? request.timestamp;
 
-		if (request.ok && isStatusPayload(request.response)) {
-			setLatestStatus(request.response);
+		if (isTrackablePodName(podName)) {
+			setObservedPodsByName((current) => {
+				const previous = current[podName];
+
+				return {
+					...current,
+					[podName]: {
+						podName,
+						requestCount: statusPayload?.requestCount ?? previous?.requestCount ?? null,
+						inFlightRequests:
+							statusPayload?.inFlightRequests ?? previous?.inFlightRequests ?? null,
+						errorCount: statusPayload?.errorCount ?? previous?.errorCount ?? null,
+						averageResponseTimeMs:
+							statusPayload?.averageResponseTimeMs ??
+							previous?.averageResponseTimeMs ??
+							null,
+						lastSeen: getMostRecentTimestamp(previous?.lastSeen ?? null, lastSeenAt),
+						hasBackendSnapshot:
+							statusPayload !== null || previous?.hasBackendSnapshot === true,
+					},
+				};
+			});
 		}
 
-		if (request.ok && isInfoPayload(request.response)) {
-			setLatestInfo(request.response);
+		setBackendState(getBackendStateFromRequest(request));
+
+		if (statusPayload) {
+			setLatestStatus(statusPayload);
+		}
+
+		if (infoPayload) {
+			setLatestInfo(infoPayload);
 		}
 	};
 

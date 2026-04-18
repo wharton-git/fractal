@@ -2,7 +2,6 @@ import { CheckCircle2, CircleAlert, Server } from "lucide-react";
 import {
 	formatAverage,
 	formatCompactTimestamp,
-	formatPercentage,
 } from "../lib/format";
 import type { PodObservation } from "../types/demo";
 import { SectionHeader } from "./SectionHeader";
@@ -18,7 +17,7 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 				<SectionHeader
 					eyebrow="Observed Pods"
 					title="Visualisation des pods observes"
-					description="Chaque reponse enregistre le pod source. Si plusieurs noms apparaissent, la repartition est visible et la demonstration de haute disponibilite devient immediate."
+					description="Les metriques affichees ici viennent du dernier snapshot backend connu pour chaque pod. Le compteur n est plus derive du journal recent du frontend."
 				/>
 
 				{pods.length > 1 ? (
@@ -42,7 +41,7 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 				<div className="grid gap-4">
 					{pods.length === 0 ? (
 						<div className="rounded-[1.4rem] border border-dashed border-base-300/80 bg-base-200/45 p-6 text-sm text-base-content/65">
-							Aucun pod n a encore ete observe dans le journal recent.
+							Aucun pod n a encore ete observe par le monitoring backend.
 						</div>
 					) : (
 						pods.map((pod) => (
@@ -60,24 +59,39 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 											<p className="text-sm text-base-content/60">
 												Dernier passage a {formatCompactTimestamp(pod.lastSeen)}
 											</p>
+											{!pod.hasBackendSnapshot ? (
+												<p className="text-xs text-base-content/52">
+													Snapshot /api/status en attente pour ce pod.
+												</p>
+											) : null}
 										</div>
 									</div>
 
-									<div className="grid grid-cols-3 gap-3 text-right text-sm">
+									<div className="grid grid-cols-2 gap-3 text-right text-sm sm:grid-cols-4">
 										<div>
-											<p className="text-base-content/55">Requetes</p>
-											<p className="font-semibold text-primary">{pod.count}</p>
+											<p className="text-base-content/55">Requetes traitees</p>
+											<p className="font-semibold text-primary">
+												{pod.requestCount ?? "n/d"}
+											</p>
 										</div>
 										<div>
-											<p className="text-base-content/55">Succes</p>
+											<p className="text-base-content/55">In flight</p>
 											<p className="font-semibold text-primary">
-												{formatPercentage(pod.successRate)}
+												{pod.inFlightRequests ?? "n/d"}
+											</p>
+										</div>
+										<div>
+											<p className="text-base-content/55">Erreurs</p>
+											<p className="font-semibold text-primary">
+												{pod.errorCount ?? "n/d"}
 											</p>
 										</div>
 										<div>
 											<p className="text-base-content/55">Latence moy.</p>
 											<p className="font-semibold text-primary">
-												{formatAverage(pod.averageDurationMs)}
+												{pod.averageResponseTimeMs === null
+													? "n/d"
+													: formatAverage(pod.averageResponseTimeMs)}
 											</p>
 										</div>
 									</div>

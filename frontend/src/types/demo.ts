@@ -65,10 +65,12 @@ export type InfoPayload = {
 
 export type PodObservation = {
 	podName: string;
-	count: number;
+	requestCount: number | null;
+	inFlightRequests: number | null;
+	errorCount: number | null;
+	averageResponseTimeMs: number | null;
 	lastSeen: string;
-	successRate: number;
-	averageDurationMs: number;
+	hasBackendSnapshot: boolean;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
