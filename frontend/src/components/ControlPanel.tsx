@@ -37,7 +37,7 @@ export function ControlPanel({
 	onStopTests,
 }: ControlPanelProps) {
 	return (
-		<section className="surface-card p-6 sm:p-7">
+		<section className="surface-card p-5 sm:p-7">
 			<div className="flex flex-col gap-6">
 				<SectionHeader
 					eyebrow="Control Panel"
@@ -51,7 +51,7 @@ export function ControlPanel({
 							<span className="label-text font-medium">Type de test</span>
 						</div>
 						<select
-							className="select select-bordered rounded-2xl"
+							className="select select-bordered w-full rounded-2xl"
 							value={form.testType}
 							onChange={(event) =>
 								onChange({
@@ -80,7 +80,7 @@ export function ControlPanel({
 							<span className="label-text font-medium">Intensite CPU</span>
 						</div>
 						<select
-							className="select select-bordered rounded-2xl"
+							className="select select-bordered w-full rounded-2xl"
 							value={form.intensity}
 							disabled={!usesIntensity(form.testType)}
 							onChange={(event) =>
@@ -100,7 +100,7 @@ export function ControlPanel({
 							<span className="label-text font-medium">Duree CPU (ms)</span>
 						</div>
 						<input
-							className="input input-bordered rounded-2xl"
+							className="input input-bordered w-full rounded-2xl"
 							type="number"
 							min={250}
 							max={30000}
@@ -120,7 +120,7 @@ export function ControlPanel({
 							<span className="label-text font-medium">Delai artificiel (ms)</span>
 						</div>
 						<input
-							className="input input-bordered rounded-2xl"
+							className="input input-bordered w-full rounded-2xl"
 							type="number"
 							min={0}
 							max={30000}
@@ -140,7 +140,7 @@ export function ControlPanel({
 							<span className="label-text font-medium">Serie de requetes</span>
 						</div>
 						<input
-							className="input input-bordered rounded-2xl"
+							className="input input-bordered w-full rounded-2xl"
 							type="number"
 							min={1}
 							max={50}
@@ -159,7 +159,7 @@ export function ControlPanel({
 							<span className="label-text font-medium">Pause entre requetes (ms)</span>
 						</div>
 						<input
-							className="input input-bordered rounded-2xl"
+							className="input input-bordered w-full rounded-2xl"
 							type="number"
 							min={0}
 							max={10000}
@@ -198,9 +198,9 @@ export function ControlPanel({
 					</div>
 				</div>
 
-				<div className="flex flex-col gap-3 sm:flex-row">
+				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					<button
-						className="btn btn-primary rounded-full px-6"
+						className="btn btn-primary w-full justify-center rounded-full px-6 sm:w-auto"
 						onClick={onRunSingle}
 						disabled={isRunning}
 					>
@@ -208,7 +208,7 @@ export function ControlPanel({
 						Lancer une requete
 					</button>
 					<button
-						className="btn btn-neutral rounded-full px-6"
+						className="btn btn-neutral w-full justify-center rounded-full px-6 sm:w-auto"
 						onClick={onRunSeries}
 						disabled={isRunning}
 					>
@@ -217,11 +217,11 @@ export function ControlPanel({
 					</button>
 					{isRunning ? (
 						<button
-							className="btn btn-outline btn-error rounded-full px-6"
 							onClick={onStopTests}
 							disabled={isStopRequested}
+							className="btn btn-outline btn-error w-full justify-center rounded-full px-6 sm:w-auto"
 						>
-							<Square className="size-4" />
+							<Square className="size-4 shrink-0" />
 							{isStopRequested ? "Arret demande" : "Arreter les tests"}
 						</button>
 					) : null}

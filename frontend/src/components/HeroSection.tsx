@@ -1,8 +1,8 @@
 import { ArrowRight, Cloud, ShieldCheck, Zap } from "lucide-react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import type { BackendState } from "../types/demo";
 
 type HeroSectionProps = {
-	imageSrc: string;
 	backendState: BackendState;
 	observedPodCount: number;
 	latestPodName: string | null;
@@ -24,41 +24,42 @@ const availabilityLabel = (backendState: BackendState) => {
 };
 
 export function HeroSection({
-	imageSrc,
 	backendState,
 	observedPodCount,
 	latestPodName,
 	onPrimaryAction,
 	onSecondaryAction,
 }: HeroSectionProps) {
+	const networkAnimationSrc = `${import.meta.env.BASE_URL}Network.lottie`;
+
 	return (
-		<section className="surface-card surface-grid relative overflow-hidden px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+		<section className="surface-card surface-grid relative overflow-hidden px-4 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
 			<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(24,24,27,0.08),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(82,82,91,0.1),transparent_30%)]" />
-			<div className="relative grid items-center gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-				<div className="flex flex-col gap-6">
+			<div className="relative grid items-center gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8">
+				<div className="min-w-0 flex flex-col gap-6">
 					<div className="flex flex-wrap gap-2">
-						<span className="badge badge-neutral rounded-full px-4 py-3 text-xs uppercase tracking-[0.22em]">
+						<span className="badge badge-neutral rounded-full px-3 py-3 text-[0.65rem] uppercase tracking-[0.22em] sm:px-4 sm:text-xs">
 							Cloud Scaling Demo App
 						</span>
-						<span className="badge badge-outline rounded-full px-4 py-3 text-xs">
+						<span className="badge badge-outline rounded-full px-3 py-3 text-[0.65rem] sm:px-4 sm:text-xs">
 							React + Go + Kubernetes
 						</span>
 					</div>
 
 					<div className="space-y-4">
-						<h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-primary sm:text-5xl lg:text-[3.6rem] lg:leading-[1.05]">
+						<h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-primary sm:text-5xl lg:text-[3.6rem] lg:leading-[1.05]">
 							Une APP de démo GKE concue pour l'autoscaling
 							et la haute disponibilite.
 						</h1>
-						<p className="max-w-2xl text-base leading-7 text-base-content/72 sm:text-lg">
+						<p className="max-w-2xl text-sm leading-7 text-base-content/72 sm:text-lg">
 							Cette application est une plateforme de démonstration cloud-native permettant de tester la montée en charge et la haute disponibilité d’un backend via différents scénarios (CPU, latence, requêtes mixtes). Elle visualise en temps réel les performances du système et le comportement des instances (pods), tout en offrant un contrôle précis des tests et du monitoring.
 						</p>
 					</div>
 
-					<div className="flex flex-wrap gap-3">
+					<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 						<button
 							type="button"
-							className="btn btn-primary rounded-full px-6"
+							className="btn btn-primary w-full justify-center rounded-full px-6 sm:w-auto"
 							onClick={onPrimaryAction}
 						>
 							Lancer une serie
@@ -66,7 +67,7 @@ export function HeroSection({
 						</button>
 						<button
 							type="button"
-							className="btn btn-ghost rounded-full px-6"
+							className="btn btn-ghost w-full justify-center rounded-full px-6 sm:w-auto"
 							onClick={onSecondaryAction}
 						>
 							Check backend
@@ -97,17 +98,17 @@ export function HeroSection({
 								<Zap className="size-4" />
 								Derniere cible
 							</div>
-							<p className="truncate text-lg font-semibold text-primary">
+							<p className="break-all text-lg font-semibold text-primary sm:truncate">
 								{latestPodName ?? "Aucun pod observe"}
 							</p>
 						</div>
 					</div>
 				</div>
 
-				<div className="relative">
+				<div className="relative min-w-0">
 					<div className="absolute -inset-6 rounded-[2.5rem] bg-[radial-gradient(circle,rgba(24,24,27,0.12),transparent_60%)] blur-2xl" />
-					<div className="surface-card relative mx-auto max-w-md overflow-hidden border-base-300/80 bg-neutral text-neutral-content">
-						<div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+					<div className="surface-card relative mx-auto w-full overflow-hidden border-base-300/80 bg-neutral text-neutral-content">
+						<div className="flex flex-col gap-3 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
 							<div>
 								<p className="text-xs uppercase tracking-[0.22em] text-white/55">
 									GKE demo snapshot
@@ -121,16 +122,18 @@ export function HeroSection({
 							</div>
 						</div>
 
-						<div className="grid gap-4 p-5">
-							<div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/5">
-								<img
-									src={imageSrc}
-									alt="Fractal visual retained from the original project"
-									className="h-64 w-full object-cover"
+						<div className="grid gap-4 p-4 sm:p-5">
+							<div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white">
+								<DotLottieReact
+									src={networkAnimationSrc}
+									loop
+									autoplay
+									className="block w-full sm:h-64"
+									renderConfig={{ autoResize: true }}
 								/>
 							</div>
 
-							<div className="grid gap-3 sm:grid-cols-3">
+							<div className="grid gap-2 sm:grid-cols-3">
 								<div className="rounded-2xl border border-white/10 bg-white/6 p-3">
 									<p className="text-xs uppercase tracking-[0.22em] text-white/55">
 										Replicas

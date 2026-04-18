@@ -12,7 +12,7 @@ type ObservedPodsProps = {
 
 export function ObservedPods({ pods }: ObservedPodsProps) {
 	return (
-		<section className="surface-card p-6 sm:p-7">
+		<section className="surface-card p-5 sm:p-7">
 			<div className="flex flex-col gap-6">
 				<SectionHeader
 					eyebrow="Observed Pods"
@@ -49,50 +49,57 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 								key={pod.podName}
 								className="rounded-3xl border border-base-300/75 bg-base-200/42 p-4"
 							>
-								<div className="flex flex-wrap items-center justify-between gap-3">
-									<div className="flex items-center gap-3">
+								<div className="flex items-center gap-3 ">
+									<div className="">
 										<div className="rounded-2xl bg-base-100 p-3 text-primary shadow-sm">
-											<Server className="size-5" />
+											<Server className="size-6" />
 										</div>
-										<div>
-											<p className="font-semibold text-primary">{pod.podName}</p>
-											<p className="text-sm text-base-content/60">
-												Dernier passage a {formatCompactTimestamp(pod.lastSeen)}
-											</p>
-											{!pod.hasBackendSnapshot ? (
-												<p className="text-xs text-base-content/52">
-													Snapshot /api/status en attente pour ce pod.
-												</p>
-											) : null}
-										</div>
+
 									</div>
 
-									<div className="grid grid-cols-2 gap-3 text-right text-sm sm:grid-cols-4">
-										<div>
-											<p className="text-base-content/55">Requetes traitees</p>
-											<p className="font-semibold text-primary">
-												{pod.requestCount ?? "n/d"}
+									<div className="flex flex-col flex-1 space-y-2">
+										<div className="min-w-0">
+											<p className="font-semibold text-primary sm:break-normal flex justify-between">
+												<span className="mr-2 text-2xl">{pod.podName}</span>
+												<span className="text-sm text-base-content/60">
+													(Dernier passage a {formatCompactTimestamp(pod.lastSeen)})
+												</span>
+												{!pod.hasBackendSnapshot ? (
+													<p className="text-xs text-base-content/52">
+														Snapshot /api/status en attente pour ce pod.
+													</p>
+												) : null}
 											</p>
+
 										</div>
-										<div>
-											<p className="text-base-content/55">In flight</p>
-											<p className="font-semibold text-primary">
-												{pod.inFlightRequests ?? "n/d"}
-											</p>
-										</div>
-										<div>
-											<p className="text-base-content/55">Erreurs</p>
-											<p className="font-semibold text-primary">
-												{pod.errorCount ?? "n/d"}
-											</p>
-										</div>
-										<div>
-											<p className="text-base-content/55">Latence moy.</p>
-											<p className="font-semibold text-primary">
-												{pod.averageResponseTimeMs === null
-													? "n/d"
-													: formatAverage(pod.averageResponseTimeMs)}
-											</p>
+
+										<div className="flex justify-between">
+											<div>
+												<p className="text-base-content/55">Requetes</p>
+												<p className="font-semibold text-primary">
+													{pod.requestCount ?? "n/d"}
+												</p>
+											</div>
+											<div>
+												<p className="text-base-content/55">In flight</p>
+												<p className="font-semibold text-primary">
+													{pod.inFlightRequests ?? "n/d"}
+												</p>
+											</div>
+											<div>
+												<p className="text-base-content/55">Erreurs</p>
+												<p className="font-semibold text-primary">
+													{pod.errorCount ?? "n/d"}
+												</p>
+											</div>
+											<div>
+												<p className="text-base-content/55">Latence moy.</p>
+												<p className="font-semibold text-primary">
+													{pod.averageResponseTimeMs === null
+														? "n/d"
+														: formatAverage(pod.averageResponseTimeMs)}
+												</p>
+											</div>
 										</div>
 									</div>
 								</div>

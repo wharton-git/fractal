@@ -1,6 +1,6 @@
 services:
   backend:
-    build: ./fractal-engine
+    build: ./backend
     container_name: cloud-scaling-demo-backend
     ports:
       - "6543:6543"
@@ -15,7 +15,7 @@ services:
     restart: always
 
   frontend:
-    build: ./collaborative-fractal
+    build: ./frontend
     container_name: cloud-scaling-demo-frontend
     ports:
       - "8080:80"

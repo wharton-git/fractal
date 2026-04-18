@@ -56,6 +56,7 @@
     min-height: 100vh;
     background: transparent;
     color: var(--color-base-content);
+    overflow-x: hidden;
   }
 
   #root {
@@ -70,7 +71,7 @@
 
 @layer components {
   .surface-card {
-    @apply rounded-[1.75rem] border border-base-300/70 bg-base-100/85 shadow-[0_24px_70px_-40px_rgba(24,24,27,0.35)] backdrop-blur;
+    @apply rounded-[1.4rem] border border-base-300/70 bg-base-100/85 shadow-[0_24px_70px_-40px_rgba(24,24,27,0.35)] backdrop-blur sm:rounded-[1.75rem];
   }
 
   .surface-grid {
@@ -82,7 +83,7 @@
   }
 
   .section-title {
-    @apply text-2xl font-semibold tracking-tight text-primary md:text-3xl;
+    @apply text-xl font-semibold tracking-tight text-primary sm:text-2xl md:text-3xl;
   }
 
   .section-copy {

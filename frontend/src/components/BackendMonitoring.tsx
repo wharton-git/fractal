@@ -78,7 +78,7 @@ export function BackendMonitoring({
 	onToggleMonitoring,
 }: BackendMonitoringProps) {
 	return (
-		<section className="surface-card p-6 sm:p-7">
+		<section className="surface-card p-5 sm:p-7">
 			<div className="flex flex-col gap-6">
 				<SectionHeader
 					eyebrow="Backend Monitoring"
@@ -86,10 +86,10 @@ export function BackendMonitoring({
 					description="Aucun appel n est envoye au chargement. Tu peux verifier le backend manuellement ou activer un monitoring leger avec intervalle long, sans polluer le tableau principal."
 				/>
 
-				<div className="grid gap-4 rounded-[1.4rem] border border-base-300/70 bg-base-200/55 p-4 md:grid-cols-2 xl:grid-cols-4">
+				<div className="grid gap-4 rounded-[1.4rem] border border-base-300/70 bg-base-200/55 p-4 sm:grid-cols-2 xl:grid-cols-4">
 					<div>
 						<p className="mb-2 text-sm text-base-content/58">Etat</p>
-						<div className="flex items-center gap-2">
+						<div className="flex flex-wrap items-center gap-2">
 							<span className={stateBadgeClass(backendState)}>
 								{stateLabel(backendState)}
 							</span>
@@ -126,9 +126,9 @@ export function BackendMonitoring({
 					</div>
 				</div>
 
-				<div className="flex flex-col gap-3 sm:flex-row">
+				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					<button
-						className="btn btn-primary rounded-full px-6"
+						className="btn btn-primary w-full justify-center rounded-full px-6 sm:w-auto"
 						onClick={onCheckBackend}
 						disabled={isCheckingBackend}
 					>
@@ -136,7 +136,7 @@ export function BackendMonitoring({
 						Check backend
 					</button>
 					<button
-						className="btn btn-neutral rounded-full px-6"
+						className="btn btn-neutral w-full justify-center rounded-full px-6 sm:w-auto"
 						onClick={onToggleMonitoring}
 					>
 						{isManualMonitoringEnabled ? (
@@ -190,7 +190,7 @@ export function BackendMonitoring({
 						</div>
 					</div>
 
-					<div className="rounded-[1.5rem] h-[28rem] overflow-y-auto border border-base-300/75 bg-base-200/45 p-5">
+					<div className="rounded-[1.5rem] max-h-[24rem] overflow-y-auto border border-base-300/75 bg-base-200/45 p-5 sm:max-h-[28rem]">
 						<div className="mb-4 flex items-center gap-2 text-sm text-base-content/60">
 							<CheckCircle2 className="size-4" />
 							Historique monitoring
@@ -205,7 +205,7 @@ export function BackendMonitoring({
 								monitoringRequests.map((request) => (
 									<div
 										key={request.id}
-										className="flex flex-wrap items-center justify-between gap-3 rounded-[1.15rem] border border-base-300/70 bg-base-100/75 px-4 py-3"
+										className="flex flex-col gap-3 rounded-[1.15rem] border border-base-300/70 bg-base-100/75 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
 									>
 										<div>
 											<p className="text-sm font-medium text-primary">
@@ -215,7 +215,7 @@ export function BackendMonitoring({
 												{formatTimestamp(request.timestamp)}
 											</p>
 										</div>
-										<div className="text-right text-sm">
+										<div className="text-sm sm:text-right">
 											<p className="font-medium text-primary">{request.podName}</p>
 											<p className="text-base-content/58">
 												{request.statusCode === 0

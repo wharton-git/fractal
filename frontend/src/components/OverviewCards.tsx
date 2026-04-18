@@ -65,10 +65,10 @@ export function OverviewCards({
 	appRuntimeState,
 }: OverviewCardsProps) {
 	return (
-		<section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+		<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 			<div className="surface-card p-5">
 				<div className="mb-4 flex items-center justify-between">
-					<div className="flex items-center gap-2 text-sm text-base-content/60">
+					<div className="flex min-w-0 items-center gap-2 text-sm text-base-content/60">
 						<Activity className="size-4" />
 						Disponibilite backend
 					</div>
@@ -76,7 +76,7 @@ export function OverviewCards({
 						{availabilityLabel(backendState)}
 					</span>
 				</div>
-				<p className="text-3xl font-semibold text-primary">
+				<p className="text-2xl font-semibold text-primary sm:text-3xl">
 					{latestStatus?.requestCount ?? 0}
 				</p>
 				<p className="mt-2 text-sm text-base-content/68">
@@ -86,22 +86,22 @@ export function OverviewCards({
 			</div>
 
 			<div className="surface-card p-5">
-				<div className="mb-4 flex items-center gap-2 text-sm text-base-content/60">
+				<div className="mb-4 flex min-w-0 items-center gap-2 text-sm text-base-content/60">
 					<Server className="size-4" />
 					Pods observes
 				</div>
-				<p className="text-3xl font-semibold text-primary">{observedPodCount}</p>
+				<p className="text-2xl font-semibold text-primary sm:text-3xl">{observedPodCount}</p>
 				<p className="mt-2 text-sm text-base-content/68">
 					Dernier pod repondu: {latestPodName ?? "aucun"}.
 				</p>
 			</div>
 
 			<div className="surface-card p-5">
-				<div className="mb-4 flex items-center gap-2 text-sm text-base-content/60">
+				<div className="mb-4 flex min-w-0 items-center gap-2 text-sm text-base-content/60">
 					<ShieldCheck className="size-4" />
 					Execution pod locale
 				</div>
-				<p className="text-3xl font-semibold text-primary">
+				<p className="text-2xl font-semibold text-primary sm:text-3xl">
 					{latestStatus?.inFlightRequests ?? 0}
 				</p>
 				<p className="mt-2 text-sm text-base-content/68">
@@ -111,7 +111,7 @@ export function OverviewCards({
 
 			<div className="surface-card p-5">
 				<div className="mb-4 flex items-center justify-between">
-					<div className="flex items-center gap-2 text-sm text-base-content/60">
+					<div className="flex min-w-0 items-center gap-2 text-sm text-base-content/60">
 						<Clock3 className="size-4" />
 						Runtime demo
 					</div>
@@ -119,7 +119,7 @@ export function OverviewCards({
 						<RefreshCw className="size-4 animate-spin text-base-content/55" />
 					) : null}
 				</div>
-				<p className="text-3xl font-semibold text-primary">
+				<p className="text-2xl font-semibold text-primary sm:text-3xl">
 					{loggedRequestCount}
 				</p>
 				<p className="mt-2 text-sm text-base-content/68">

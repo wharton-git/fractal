@@ -6,7 +6,6 @@ import {
 	useState,
 } from "react";
 import { CircleAlert } from "lucide-react";
-import heroImage from "./assets/hero.png";
 import { AvailabilitySection } from "./components/AvailabilitySection";
 import { BackendMonitoring } from "./components/BackendMonitoring";
 import { CommandShowcase } from "./components/CommandShowcase";
@@ -795,7 +794,6 @@ function App() {
 		<div className="min-h-screen">
 			<div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
 				<HeroSection
-					imageSrc={heroImage}
 					backendState={backendState}
 					observedPodCount={liveObservedPods.length}
 					latestPodName={latestPodName}

@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.19.0",
     "@tailwindcss/vite": "^4.2.2",
     "axios": "^1.14.0",
     "lucide-react": "^1.7.0",
