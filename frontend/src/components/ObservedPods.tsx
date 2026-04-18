@@ -48,7 +48,7 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 						pods.map((pod) => (
 							<div
 								key={pod.podName}
-								className="rounded-[1.5rem] border border-base-300/75 bg-base-200/42 p-4"
+								className="rounded-3xl border border-base-300/75 bg-base-200/42 p-4"
 							>
 								<div className="flex flex-wrap items-center justify-between gap-3">
 									<div className="flex items-center gap-3">

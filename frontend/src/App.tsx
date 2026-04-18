@@ -200,9 +200,9 @@ function App() {
 		successfulRequests.length === 0
 			? 0
 			: successfulRequests.reduce(
-					(total, request) => total + request.durationMs,
-					0,
-			  ) / successfulRequests.length;
+				(total, request) => total + request.durationMs,
+				0,
+			) / successfulRequests.length;
 	const latestPodName =
 		latestStatus?.podName ??
 		latestInfo?.podName ??
@@ -399,24 +399,24 @@ function App() {
 				const request =
 					testType === "status"
 						? await refreshStatusRequest({
-								source,
-								surfaceErrors,
-								logMode: perSectionLogMode.status,
-								reuseInFlight,
-							})
+							source,
+							surfaceErrors,
+							logMode: perSectionLogMode.status,
+							reuseInFlight,
+						})
 						: testType === "info"
 							? await refreshInfoRequest({
-									source,
-									surfaceErrors,
-									logMode: perSectionLogMode.info,
-									reuseInFlight,
-								})
+								source,
+								surfaceErrors,
+								logMode: perSectionLogMode.info,
+								reuseInFlight,
+							})
 							: await refreshHealthRequest({
-									source,
-									surfaceErrors,
-									logMode: perSectionLogMode.health,
-									reuseInFlight,
-								});
+								source,
+								surfaceErrors,
+								logMode: perSectionLogMode.health,
+								reuseInFlight,
+							});
 
 				if (!request) {
 					continue;
@@ -708,6 +708,13 @@ function App() {
 		);
 	};
 
+	const scrollToId = (id: string) => {
+		const element = document.getElementById(id);
+		if (element) {
+			element.scrollIntoView({ behavior: "smooth", block: "start" });
+		}
+	};
+
 	return (
 		<div className="min-h-screen">
 			<div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -716,8 +723,12 @@ function App() {
 					backendState={backendState}
 					observedPodCount={liveObservedPods.length}
 					latestPodName={latestPodName}
-					onPrimaryAction={handleRunSeries}
-					onSecondaryAction={handleCheckBackend}
+					onPrimaryAction={() => {
+						scrollToId("test-section");
+					}}
+					onSecondaryAction={() => {
+						scrollToId("backend-section");
+					}}
 				/>
 
 				{notice ? (
@@ -742,38 +753,42 @@ function App() {
 
 				<div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
 					<div className="flex flex-col gap-6">
-						<ControlPanel
-							form={form}
-							isRunning={isRunning}
-							sequenceProgress={sequenceProgress}
-							isStopRequested={isStopRequested}
-							onChange={(partial) =>
-								setForm((current) => ({
-									...current,
-									...partial,
-								}))
-							}
-							onRunSingle={handleRunSingle}
-							onRunSeries={handleRunSeries}
-							onStopTests={handleStopTests}
-						/>
-						<BackendMonitoring
-							backendState={backendState}
-							appRuntimeState={appRuntimeState}
-							isCheckingBackend={isCheckingBackend}
-							isManualMonitoringEnabled={isMonitoring}
-							isMonitoringActive={isMonitoringActive}
-							monitoringModeLabel={monitoringModeLabel}
-							isStopRequested={isStopRequested}
-							monitoringRequests={deferredMonitoringRequests}
-							lastBackendCheckAt={lastBackendCheckAt}
-							latestInfo={latestInfo}
-							latestStatus={latestStatus}
-							onCheckBackend={handleCheckBackend}
-							onToggleMonitoring={() => {
-								void handleToggleMonitoring();
-							}}
-						/>
+						<div id="test-section" className="scroll-mt-24">
+							<ControlPanel
+								form={form}
+								isRunning={isRunning}
+								sequenceProgress={sequenceProgress}
+								isStopRequested={isStopRequested}
+								onChange={(partial) =>
+									setForm((current) => ({
+										...current,
+										...partial,
+									}))
+								}
+								onRunSingle={handleRunSingle}
+								onRunSeries={handleRunSeries}
+								onStopTests={handleStopTests}
+							/>
+						</div>
+						<div id="backend-section" className="scroll-mt-24">
+							<BackendMonitoring
+								backendState={backendState}
+								appRuntimeState={appRuntimeState}
+								isCheckingBackend={isCheckingBackend}
+								isManualMonitoringEnabled={isMonitoring}
+								isMonitoringActive={isMonitoringActive}
+								monitoringModeLabel={monitoringModeLabel}
+								isStopRequested={isStopRequested}
+								monitoringRequests={deferredMonitoringRequests}
+								lastBackendCheckAt={lastBackendCheckAt}
+								latestInfo={latestInfo}
+								latestStatus={latestStatus}
+								onCheckBackend={handleCheckBackend}
+								onToggleMonitoring={() => {
+									void handleToggleMonitoring();
+								}}
+							/>
+						</div>
 					</div>
 					<ObservedPods pods={liveObservedPods} />
 				</div>

@@ -47,23 +47,28 @@ export function HeroSection({
 
 					<div className="space-y-4">
 						<h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-primary sm:text-5xl lg:text-[3.6rem] lg:leading-[1.05]">
-							Une application de demonstration GKE concue pour l autoscaling
+							Une APP de démo GKE concue pour l'autoscaling
 							et la haute disponibilite.
 						</h1>
 						<p className="max-w-2xl text-base leading-7 text-base-content/72 sm:text-lg">
-							L interface conserve l esprit DaisyUI de l existant, mais la
-							logique produit est maintenant orientee vers une vraie
-							demonstration cloud-native : probes, repartition des requetes,
-							observation des pods et charge CPU visible pour le HPA.
+							Cette application est une plateforme de démonstration cloud-native permettant de tester la montée en charge et la haute disponibilité d’un backend via différents scénarios (CPU, latence, requêtes mixtes). Elle visualise en temps réel les performances du système et le comportement des instances (pods), tout en offrant un contrôle précis des tests et du monitoring.
 						</p>
 					</div>
 
 					<div className="flex flex-wrap gap-3">
-						<button className="btn btn-primary rounded-full px-6" onClick={onPrimaryAction}>
+						<button
+							type="button"
+							className="btn btn-primary rounded-full px-6"
+							onClick={onPrimaryAction}
+						>
 							Lancer une serie
 							<ArrowRight className="size-4" />
 						</button>
-						<button className="btn btn-ghost rounded-full px-6" onClick={onSecondaryAction}>
+						<button
+							type="button"
+							className="btn btn-ghost rounded-full px-6"
+							onClick={onSecondaryAction}
+						>
 							Check backend
 						</button>
 					</div>
