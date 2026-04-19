@@ -58,7 +58,7 @@ gcloud projects list
 
 ### Préparer le projet
 
-> [!NOTE] Info 
+> [!NOTE] 
 *Active les APIs GKE et Artifact Registry. C’est requis par la doc officielle GKE pour déployer une app sur un cluster.*
 
 >(Cette étape peut etre sauter si c'est déjà fait en haut)
@@ -94,7 +94,8 @@ gcloud auth configure-docker europe-west1-docker.pkg.dev
 
 Il faut se placer à la racine du projet :
 
-> Note : ce n’est pas obligatoire, mais cela évite de répéter les chemins dans chaque commande.
+> [!NOTE]
+Ce n’est pas obligatoire, mais cela évite de répéter les chemins dans chaque commande.
 
 ### Définir des Variables d’environnement
 
@@ -163,7 +164,7 @@ Pour deployer le projet, on a 3 cas :
 - [Déployer sans `Kustomize`](./kubectl-yaml.md) (*Projet déjà structuré avec des YAML, mais sans `kustomization.yaml`*)
 - [Créer les manifests et déployer depuis zéro](./kubernetes-from-scratch.md) (*Projet sans manifests Kubernetes*)
 
-> [!NOTE] Info
+> [!NOTE]
 > Rôle de `kustomization.yaml`
 >
 >Kustomize permet de :
@@ -182,7 +183,7 @@ Ce cas s'applique si le projet contient déjà :
 ```bash
 kubectl apply -k k8s/
 ```
-> [!TIP] Alternative 
+> [!TIP] 
 > Si cette commande échoue avec une erreur liée à l'absence de `kustomization.yaml`, consulter [déployer avec des YAML sans Kustomize.](./kubectl-yaml.md)
 ### Cas 2 : Déployer sans `Kustomize`
 
@@ -191,14 +192,14 @@ Ce cas s'applique si :
 - des manifests Kubernetes existent déjà
 - aucun `kustomization.yaml` n'est utilisé
 
-> [!NOTE] Docs
+> [!NOTE]
 Consulter [déployer avec des YAML sans Kustomize.](./kubectl-yaml.md)
 
 ### Cas 3 : Créer les manifests et déployer depuis zéro
 
 Ce cas s'applique lorsqu'aucun manifest Kubernetes n'existe encore.
 
-> [!NOTE] Docs
+> [!NOTE]
 Consulter [Créer les manifests et déployer depuis zéro](./kubernetes-from-scratch.md)
 
 ## 7. Verification et Debug
