@@ -15,6 +15,7 @@ import { ObservedPods } from "./components/ObservedPods";
 import { OverviewCards } from "./components/OverviewCards";
 import { RequestResults } from "./components/RequestResults";
 import { runDemoRequest } from "./lib/api";
+import { createClientId } from "./lib/id";
 import {
 	type AppRuntimeState,
 	type BackendState,
@@ -255,7 +256,7 @@ function App() {
 		null;
 
 	const registerController = (kind: ManagedRequestKind, source: RequestSource) => {
-		const id = crypto.randomUUID();
+		const id = createClientId();
 		const controller = new AbortController();
 		activeControllersRef.current.set(id, { controller, kind, source });
 

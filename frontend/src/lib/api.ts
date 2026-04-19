@@ -1,4 +1,5 @@
 import axios from "axios";
+import { createClientId } from "./id";
 import type { FormState, RequestRecord, TestType } from "../types/demo";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
@@ -136,7 +137,7 @@ export const runDemoRequest = async (
 		const durationMs = Math.round(performance.now() - startedAt);
 
 		return {
-			id: crypto.randomUUID(),
+			id: createClientId(),
 			testType,
 			endpoint,
 			paramsLabel: buildParamsLabel(params),
@@ -154,7 +155,7 @@ export const runDemoRequest = async (
 		if (axios.isAxiosError(error)) {
 			if (error.code === "ERR_CANCELED") {
 				return {
-					id: crypto.randomUUID(),
+					id: createClientId(),
 					testType,
 					endpoint,
 					paramsLabel: buildParamsLabel(params),
@@ -179,7 +180,7 @@ export const runDemoRequest = async (
 			};
 
 			return {
-				id: crypto.randomUUID(),
+				id: createClientId(),
 				testType,
 				endpoint,
 				paramsLabel: buildParamsLabel(params),
@@ -203,7 +204,7 @@ export const runDemoRequest = async (
 		}
 
 		return {
-			id: crypto.randomUUID(),
+			id: createClientId(),
 			testType,
 			endpoint,
 			paramsLabel: buildParamsLabel(params),

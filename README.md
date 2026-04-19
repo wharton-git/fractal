@@ -14,8 +14,8 @@ Le projet montre comment un frontend React moderne et un backend Go stateless se
 
 ```text
 .
-|-- collaborative-fractal/   # Frontend React + Vite + TypeScript + Tailwind + DaisyUI
-|-- fractal-engine/          # Backend Go stateless
+|-- frontend/   # Frontend React + Vite + TypeScript + Tailwind + DaisyUI
+|-- backend/          # Backend Go stateless
 |-- k8s/                     # Manifests Kubernetes / GKE
 |-- scripts/                 # Scripts utilitaires de build et de deploiement
 `-- docker-compose.yml       # Lancement local avec frontend + backend
@@ -81,18 +81,23 @@ Points d acces :
 Backend :
 
 ```bash
-cd fractal-engine
+cd backend
 GOCACHE=/tmp/go-build-cache go run .
 ```
 
 Frontend :
 
 ```bash
-cd collaborative-fractal
+cd frontend
 corepack enable
 pnpm install
 pnpm dev
 ```
+
+Points d acces en mode manuel :
+
+- frontend Vite : `http://localhost:5173`
+- backend direct : `http://localhost:6543`
 
 Le serveur Vite proxy automatiquement `/api` vers `http://localhost:6543`.
 
@@ -101,8 +106,8 @@ Le serveur Vite proxy automatiquement `/api` vers `http://localhost:6543`.
 ### Build manuel
 
 ```bash
-docker build -t cloud-scaling-demo/backend:local ./fractal-engine
-docker build -t cloud-scaling-demo/frontend:local ./collaborative-fractal
+docker build -t cloud-scaling-demo/backend:local ./backend
+docker build -t cloud-scaling-demo/frontend:local ./frontend
 ```
 
 ### Script utilitaire
@@ -142,7 +147,7 @@ Les manifests sont dans `k8s/` :
 
 Avant d appliquer les manifests :
 
-1. remplace `PROJECT_ID` dans :
+1. adapte les champs `image` dans :
    - `k8s/backend-deployment.yaml`
    - `k8s/frontend-deployment.yaml`
 2. ajuste eventuellement la region dans `k8s/backend-configmap.yaml`
@@ -160,14 +165,18 @@ Ou avec le script :
 ./scripts/apply-k8s.sh
 ```
 
+Guide detaille :
+
+- [Documentation GKE/Kubernetes](./docs/deploy-gke.md)
+
 ## Deploiement sur GKE
 
 Exemple de flux simple :
 
 ```bash
 gcloud auth configure-docker europe-west1-docker.pkg.dev
-docker build -t europe-west1-docker.pkg.dev/PROJECT_ID/cloud-scaling-demo/backend:v1 ./fractal-engine
-docker build -t europe-west1-docker.pkg.dev/PROJECT_ID/cloud-scaling-demo/frontend:v1 ./collaborative-fractal
+docker build -t europe-west1-docker.pkg.dev/PROJECT_ID/cloud-scaling-demo/backend:v1 ./backend
+docker build -t europe-west1-docker.pkg.dev/PROJECT_ID/cloud-scaling-demo/frontend:v1 ./frontend
 docker push europe-west1-docker.pkg.dev/PROJECT_ID/cloud-scaling-demo/backend:v1
 docker push europe-west1-docker.pkg.dev/PROJECT_ID/cloud-scaling-demo/frontend:v1
 ```
@@ -189,6 +198,11 @@ kubectl apply -k k8s
 ```
 
 ## Commandes Apache Bench conseillees
+
+Note :
+
+- dans les manifests actuels, `backend-service` est en `ClusterIP`
+- depuis une machine locale, ces commandes backend directes supposent donc un `port-forward`, un pod de debug interne, ou une autre exposition explicite du backend
 
 Test simple :
 
@@ -218,7 +232,7 @@ kubectl top pods -n cloud-scaling-demo
 kubectl describe hpa backend-hpa -n cloud-scaling-demo
 ```
 
-Ce que tu dois voir :
+Observation attendue :
 
 - plusieurs pods backend actifs
 - une hausse CPU sur les pods soumis a la charge
@@ -279,6 +293,6 @@ kubectl delete pod -n cloud-scaling-demo <backend-pod-name>
 
 ## Notes
 
-- `k8s/ingress-example.yaml` est fourni comme base si tu preferes exposer le frontend via Ingress GKE plutot qu avec un `LoadBalancer`.
+- `k8s/ingress-example.yaml` est fourni comme base si une exposition du frontend via Ingress GKE est preferee a un `LoadBalancer`.
 - pour observer le HPA sur GKE, il faut que les metrics soient disponibles dans le cluster.
 - les manifests sont volontairement simples et pedagogiques pour une demo academique ou professionnelle.
