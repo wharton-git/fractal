@@ -4,19 +4,17 @@ import {
 	CircleAlert,
 	ClockFading,
 	Cpu,
-	Download,
 	Globe,
 	MemoryStick,
 	OctagonX,
 	Server,
-	Upload,
 } from "lucide-react";
 import {
 	formatAverage,
 	formatBytes,
-	formatBytesPerSecond,
 	formatCompactTimestamp,
 	formatDecimal,
+	formatMillicores,
 } from "../lib/format";
 import type { PodObservation } from "../types/demo";
 import { SectionHeader } from "./SectionHeader";
@@ -32,7 +30,7 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 				<SectionHeader
 					eyebrow="Observed Pods"
 					title="Visualisation des pods observes"
-					description="Les metriques affichees ici viennent du dernier snapshot backend connu pour chaque pod. Le compteur n est plus derive du journal recent du frontend."
+					description="Les metriques applicatives viennent des snapshots backend par pod. Le CPU et la memoire sont maintenant recuperes cluster-wide via la Metrics API Kubernetes."
 				/>
 
 				{pods.length > 1 ? (
@@ -121,7 +119,12 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 													<MemoryStick size="17" />
 												</div>
 												<div className="text-xs">
-													{formatBytes(pod.memoryCgroupCurrentBytes)} / {pod.memoryLimitUnlimited ? "illimitee" : formatBytes(pod.memoryCgroupLimitBytes)}
+													{formatBytes(pod.memoryUsageBytes)}
+													{pod.memoryLimitUnlimited
+														? " / illimitee"
+														: pod.memoryCgroupLimitBytes == null
+															? ""
+															: ` / ${formatBytes(pod.memoryCgroupLimitBytes)}`}
 												</div>
 											</div>
 											<div className="flex shrink-0 items-center gap-1">
@@ -129,7 +132,7 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 													<Cpu size="17" />
 												</div>
 												<div className="text-xs">
-													{pod.cpuUsageApproxPercent === null ? "n/d" : formatDecimal(pod.cpuUsageApproxPercent, "%")}
+													{formatMillicores(pod.cpuUsageMillicores)}
 												</div>
 											</div>
 
@@ -137,39 +140,8 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 												<p className="text-xs font-semibold text-primary">
 													{pod.cpuQuotaCores === null
 														? "n/d"
-														: formatDecimal(pod.cpuQuotaCores, "coeurs")}
+														: `Limite ${formatDecimal(pod.cpuQuotaCores * 1000, "mCPU")}`}
 												</p>
-											</div>
-										</div>
-
-										<div className="flex flex-wrap gap-3 border-t border-base-300/50 pt-2">
-											<div className="flex min-w-[11rem] items-center gap-2 rounded-2xl bg-base-100/70 px-3 py-2">
-												<Download size="16" className="text-primary" />
-												<div className="min-w-0">
-													<p className="text-[0.68rem] text-base-content/55">
-														Bande passante entrante
-													</p>
-													<p className="truncate text-xs font-semibold text-primary">
-														{formatBytesPerSecond(pod.networkRxBytesPerSecond)}
-													</p>
-													<p className="truncate text-[0.68rem] text-base-content/55">
-														Total: {formatBytes(pod.networkRxBytesTotal)}
-													</p>
-												</div>
-											</div>
-											<div className="flex min-w-[11rem] items-center gap-2 rounded-2xl bg-base-100/70 px-3 py-2">
-												<Upload size="16" className="text-primary" />
-												<div className="min-w-0">
-													<p className="text-[0.68rem] text-base-content/55">
-														Bande passante sortante
-													</p>
-													<p className="truncate text-xs font-semibold text-primary">
-														{formatBytesPerSecond(pod.networkTxBytesPerSecond)}
-													</p>
-													<p className="truncate text-[0.68rem] text-base-content/55">
-														Total: {formatBytes(pod.networkTxBytesTotal)}
-													</p>
-												</div>
 											</div>
 										</div>
 									</div>

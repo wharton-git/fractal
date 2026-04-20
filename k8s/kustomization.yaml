@@ -4,6 +4,9 @@ namespace: cloud-scaling-demo
 resources:
   - namespace.yaml
   - backend-configmap.yaml
+  - backend-serviceaccount.yaml
+  - backend-metrics-reader-role.yaml
+  - backend-metrics-reader-rolebinding.yaml
   - backend-deployment.yaml
   - backend-service.yaml
   - backend-hpa.yaml

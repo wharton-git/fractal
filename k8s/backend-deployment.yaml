@@ -14,6 +14,7 @@ spec:
       labels:
         app: backend
     spec:
+      serviceAccountName: backend-service-account
       terminationGracePeriodSeconds: 30
       containers:
         - name: backend
@@ -28,6 +29,10 @@ spec:
           env:
             - name: PORT
               value: "6543"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: APP_INSTANCE_ID
               valueFrom:
                 fieldRef:

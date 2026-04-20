@@ -65,6 +65,9 @@ func TestRequestMiddlewareExcludesObservabilityRoutesFromMetrics(t *testing.T) {
 	router.GET("/api/status", func(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "down"})
 	})
+	router.GET("/api/pods/metrics", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"available": true, "pods": gin.H{}})
+	})
 
 	firstResponse := httptest.NewRecorder()
 	router.ServeHTTP(firstResponse, httptest.NewRequest(http.MethodGet, "/api/load/cpu", nil))
@@ -85,6 +88,13 @@ func TestRequestMiddlewareExcludesObservabilityRoutesFromMetrics(t *testing.T) {
 
 	if thirdResponse.Code != http.StatusServiceUnavailable {
 		t.Fatalf("unexpected status for /api/status: got %d want %d", thirdResponse.Code, http.StatusServiceUnavailable)
+	}
+
+	fourthResponse := httptest.NewRecorder()
+	router.ServeHTTP(fourthResponse, httptest.NewRequest(http.MethodGet, "/api/pods/metrics", nil))
+
+	if fourthResponse.Code != http.StatusOK {
+		t.Fatalf("unexpected status for /api/pods/metrics: got %d want %d", fourthResponse.Code, http.StatusOK)
 	}
 
 	snapshot := store.Snapshot()

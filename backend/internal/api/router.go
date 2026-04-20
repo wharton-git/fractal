@@ -8,13 +8,19 @@ import (
 
 	"fractal-engine/internal/config"
 	"fractal-engine/internal/metrics"
+	"fractal-engine/internal/podmetrics"
 	"fractal-engine/internal/systemmetrics"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(cfg config.Config, store *metrics.Store, logger *slog.Logger) *gin.Engine {
+func NewRouter(
+	cfg config.Config,
+	store *metrics.Store,
+	logger *slog.Logger,
+	podMetrics *podmetrics.Service,
+) *gin.Engine {
 	if strings.EqualFold(cfg.Environment, "development") {
 		gin.SetMode(gin.DebugMode)
 	} else {
@@ -35,7 +41,7 @@ func NewRouter(cfg config.Config, store *metrics.Store, logger *slog.Logger) *gi
 		MaxAge:           12 * time.Hour,
 	}))
 
-	handler := NewHandler(cfg, store, systemmetrics.NewCollector())
+	handler := NewHandler(cfg, store, systemmetrics.NewCollector(), podMetrics)
 
 	api := router.Group("/api")
 	{
@@ -43,6 +49,7 @@ func NewRouter(cfg config.Config, store *metrics.Store, logger *slog.Logger) *gi
 		api.GET("/ready", handler.Ready)
 		api.GET("/info", handler.Info)
 		api.GET("/status", handler.Status)
+		api.GET("/pods/metrics", handler.PodMetrics)
 		api.GET("/load/cpu", handler.CPULoad)
 		api.GET("/load/latency", handler.LatencyLoad)
 		api.GET("/load/mixed", handler.MixedLoad)

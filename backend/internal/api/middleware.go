@@ -11,10 +11,11 @@ import (
 )
 
 var untrackedMetricsRoutes = map[string]struct{}{
-	"/api/health": {},
-	"/api/ready":  {},
-	"/api/info":   {},
-	"/api/status": {},
+	"/api/health":       {},
+	"/api/ready":        {},
+	"/api/info":         {},
+	"/api/status":       {},
+	"/api/pods/metrics": {},
 }
 
 func shouldTrackRequestMetrics(path string) bool {

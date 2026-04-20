@@ -37,11 +37,8 @@ export type ResourceSnapshot = {
 	cpuLogicalCores: number;
 	goMaxProcs: number;
 	cpuQuotaCores?: number | null;
-	cpuUsageApproxPercent?: number | null;
 	networkRxBytesTotal?: number | null;
 	networkTxBytesTotal?: number | null;
-	networkRxBytesPerSecond?: number | null;
-	networkTxBytesPerSecond?: number | null;
 	memoryGoAllocBytes: number;
 	memoryGoSysBytes: number;
 	memoryCgroupCurrentBytes?: number | null;
@@ -49,6 +46,20 @@ export type ResourceSnapshot = {
 	memoryLimitUnlimited?: boolean;
 	goroutines: number;
 	timestamp: string;
+};
+
+export type PodMetricUsage = {
+	cpuUsageMillicores: number;
+	memoryUsageBytes: number;
+};
+
+export type PodMetricsSnapshot = {
+	available: boolean;
+	source: string;
+	namespace?: string;
+	timestamp: string;
+	pods: Record<string, PodMetricUsage>;
+	error?: string;
 };
 
 export type StatusPayload = {
@@ -89,13 +100,9 @@ export type PodObservation = {
 	inFlightRequests: number | null;
 	errorCount: number | null;
 	averageResponseTimeMs: number | null;
-	cpuUsageApproxPercent: number | null;
+	cpuUsageMillicores: number | null;
 	cpuQuotaCores: number | null;
-	networkRxBytesTotal: number | null;
-	networkTxBytesTotal: number | null;
-	networkRxBytesPerSecond: number | null;
-	networkTxBytesPerSecond: number | null;
-	memoryCgroupCurrentBytes: number | null;
+	memoryUsageBytes: number | null;
 	memoryCgroupLimitBytes: number | null;
 	memoryLimitUnlimited: boolean;
 	lastSeen: string;
@@ -127,3 +134,23 @@ export const isInfoPayload = (value: unknown): value is InfoPayload =>
 	typeof value.podName === "string" &&
 	typeof value.environment === "string" &&
 	(!("resources" in value) || value.resources == null || isResourceSnapshot(value.resources));
+
+export const isPodMetricsSnapshot = (value: unknown): value is PodMetricsSnapshot => {
+	if (
+		!isRecord(value) ||
+		typeof value.available !== "boolean" ||
+		typeof value.source !== "string" ||
+		typeof value.timestamp !== "string" ||
+		!("pods" in value) ||
+		!isRecord(value.pods)
+	) {
+		return false;
+	}
+
+	return Object.values(value.pods).every(
+		(podMetric) =>
+			isRecord(podMetric) &&
+			typeof podMetric.cpuUsageMillicores === "number" &&
+			typeof podMetric.memoryUsageBytes === "number",
+	);
+};

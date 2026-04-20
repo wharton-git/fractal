@@ -29,6 +29,7 @@ Le backend expose les endpoints suivants :
 - `GET /api/ready`
 - `GET /api/info`
 - `GET /api/status`
+- `GET /api/pods/metrics`
 - `GET /api/load/cpu?duration=5000&intensity=medium`
 - `GET /api/load/latency?delay=3000`
 - `GET /api/load/mixed?duration=4000&delay=1000&intensity=medium`
@@ -140,8 +141,13 @@ Les manifests sont dans `k8s/` :
 - liveness probe backend sur `/api/health`
 - autoscaling backend par HPA CPU
 - PodDisruptionBudget pour le backend
+- lecture CPU/memoire des pods via `metrics.k8s.io`
 - frontend exposant un `LoadBalancer`
 - proxy Nginx frontend vers le service backend interne
+
+Note :
+
+- le cluster doit exposer l API `metrics.k8s.io` via `metrics-server` ou un adaptateur compatible pour que le frontend affiche le CPU et la memoire de tous les pods backend
 
 ### Deploiement Kubernetes
 

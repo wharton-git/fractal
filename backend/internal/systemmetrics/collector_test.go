@@ -89,33 +89,6 @@ func TestV1ReaderReadsLegacyControllers(t *testing.T) {
 	}
 }
 
-func TestCollectorSamplesCPUUsagePercent(t *testing.T) {
-	t.Parallel()
-
-	collector := &Collector{}
-	startedAt := time.Unix(0, 0)
-
-	first := collector.sampleCPUUsage(startedAt, ptrUint64(0), ptrFloat64(2), 2, 2)
-	if first != nil {
-		t.Fatalf("expected first sample to be nil, got %#v", first)
-	}
-
-	second := collector.sampleCPUUsage(
-		startedAt.Add(2*time.Second),
-		ptrUint64(2_000_000_000),
-		ptrFloat64(2),
-		2,
-		2,
-	)
-	if second == nil {
-		t.Fatal("expected cpu usage percent on second sample")
-	}
-
-	if *second != 50 {
-		t.Fatalf("expected cpu usage percent 50, got %v", *second)
-	}
-}
-
 func TestParseNetworkTotals(t *testing.T) {
 	t.Parallel()
 
@@ -130,35 +103,6 @@ func TestParseNetworkTotals(t *testing.T) {
 
 	if txTotal == nil || *txTotal != 6144 {
 		t.Fatalf("expected tx total 6144, got %#v", txTotal)
-	}
-}
-
-func TestCollectorSamplesNetworkUsage(t *testing.T) {
-	t.Parallel()
-
-	collector := &Collector{}
-	startedAt := time.Unix(0, 0)
-
-	firstRx, firstTx := collector.sampleNetworkUsage(startedAt, ptrUint64(100), ptrUint64(200))
-	if firstRx != nil || firstTx != nil {
-		t.Fatalf("expected first network sample to be nil, got rx=%#v tx=%#v", firstRx, firstTx)
-	}
-
-	secondRx, secondTx := collector.sampleNetworkUsage(
-		startedAt.Add(2*time.Second),
-		ptrUint64(2_100),
-		ptrUint64(4_200),
-	)
-	if secondRx == nil || secondTx == nil {
-		t.Fatal("expected network rate sample on second measurement")
-	}
-
-	if *secondRx != 1000 {
-		t.Fatalf("expected rx rate 1000 B/s, got %v", *secondRx)
-	}
-
-	if *secondTx != 2000 {
-		t.Fatalf("expected tx rate 2000 B/s, got %v", *secondTx)
 	}
 }
 

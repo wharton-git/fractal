@@ -14,17 +14,20 @@ import { HeroSection } from "./components/HeroSection";
 import { ObservedPods } from "./components/ObservedPods";
 import { OverviewCards } from "./components/OverviewCards";
 import { RequestResults } from "./components/RequestResults";
-import { runDemoRequest } from "./lib/api";
+import { fetchPodMetricsSnapshot, runDemoRequest } from "./lib/api";
 import { createClientId } from "./lib/id";
 import {
 	type AppRuntimeState,
 	type BackendState,
 	type FormState,
 	type InfoPayload,
+	type PodMetricUsage,
 	type PodObservation,
+	type PodMetricsSnapshot,
 	type RequestRecord,
 	type StatusPayload,
 	isInfoPayload,
+	isPodMetricsSnapshot,
 	isStatusPayload,
 } from "./types/demo";
 
@@ -88,7 +91,8 @@ const getBackendStateFromRequest = (request: RequestRecord): BackendState => {
 };
 
 const isAbortError = (error: unknown) =>
-	error instanceof DOMException && error.name === "AbortError";
+	(error instanceof DOMException && error.name === "AbortError") ||
+	(error instanceof Error && error.name === "CanceledError");
 
 const isStopSensitiveSource = (source: RequestSource) =>
 	source === "temporary_monitoring" || source === "post_test_refresh";
@@ -174,6 +178,7 @@ function App() {
 	const [observedPodsByName, setObservedPodsByName] = useState<
 		Record<string, PodObservation>
 	>({});
+	const latestPodMetricsByNameRef = useRef<Record<string, PodMetricUsage>>({});
 	const backendRefreshInFlightRef = useRef<
 		Record<BackendCheckType, Promise<RequestRecord | null> | null>
 	>({
@@ -181,6 +186,7 @@ function App() {
 		info: null,
 		status: null,
 	});
+	const podMetricsRefreshInFlightRef = useRef<Promise<boolean> | null>(null);
 	const stopRequestedRef = useRef(false);
 	const activeControllersRef = useRef(
 		new Map<
@@ -293,6 +299,7 @@ function App() {
 		if (isTrackablePodName(podName)) {
 			setObservedPodsByName((current) => {
 				const previous = current[podName];
+				const latestPodMetrics = latestPodMetricsByNameRef.current[podName];
 
 				return {
 					...current,
@@ -306,31 +313,15 @@ function App() {
 							statusPayload?.averageResponseTimeMs ??
 							previous?.averageResponseTimeMs ??
 							null,
-						cpuUsageApproxPercent:
-							resourceSnapshot?.cpuUsageApproxPercent ??
-							previous?.cpuUsageApproxPercent ??
+						cpuUsageMillicores:
+							latestPodMetrics?.cpuUsageMillicores ??
+							previous?.cpuUsageMillicores ??
 							null,
 						cpuQuotaCores:
 							resourceSnapshot?.cpuQuotaCores ?? previous?.cpuQuotaCores ?? null,
-						networkRxBytesTotal:
-							resourceSnapshot?.networkRxBytesTotal ??
-							previous?.networkRxBytesTotal ??
-							null,
-						networkTxBytesTotal:
-							resourceSnapshot?.networkTxBytesTotal ??
-							previous?.networkTxBytesTotal ??
-							null,
-						networkRxBytesPerSecond:
-							resourceSnapshot?.networkRxBytesPerSecond ??
-							previous?.networkRxBytesPerSecond ??
-							null,
-						networkTxBytesPerSecond:
-							resourceSnapshot?.networkTxBytesPerSecond ??
-							previous?.networkTxBytesPerSecond ??
-							null,
-						memoryCgroupCurrentBytes:
-							resourceSnapshot?.memoryCgroupCurrentBytes ??
-							previous?.memoryCgroupCurrentBytes ??
+						memoryUsageBytes:
+							latestPodMetrics?.memoryUsageBytes ??
+							previous?.memoryUsageBytes ??
 							null,
 						memoryCgroupLimitBytes:
 							resourceSnapshot?.memoryCgroupLimitBytes ??
@@ -357,6 +348,34 @@ function App() {
 		if (infoPayload) {
 			setLatestInfo(infoPayload);
 		}
+	};
+
+	const mergePodMetricsSnapshot = (snapshot: PodMetricsSnapshot) => {
+		latestPodMetricsByNameRef.current = snapshot.pods;
+
+		setObservedPodsByName((current) => {
+			if (Object.keys(current).length === 0) {
+				return current;
+			}
+
+			const nextEntries = Object.entries(current).map(([podName, pod]) => {
+				const latestPodMetrics = snapshot.pods[podName];
+				if (!latestPodMetrics) {
+					return [podName, pod] as const;
+				}
+
+				return [
+					podName,
+					{
+						...pod,
+						cpuUsageMillicores: latestPodMetrics.cpuUsageMillicores,
+						memoryUsageBytes: latestPodMetrics.memoryUsageBytes,
+					},
+				] as const;
+			});
+
+			return Object.fromEntries(nextEntries);
+		});
 	};
 
 	const appendMainRequest = (request: RequestRecord) => {
@@ -537,6 +556,70 @@ function App() {
 		async (options: RefreshBackendSnapshotOptions) =>
 			refreshBackendSnapshotRequest(options),
 	);
+
+	const refreshPodMetricsSnapshot = useEffectEvent(
+		async ({
+			source,
+			reuseInFlight = true,
+		}: {
+			source: RequestSource;
+			reuseInFlight?: boolean;
+		}) => {
+			if (stopRequestedRef.current && isStopSensitiveSource(source)) {
+				return false;
+			}
+
+			const inFlightRequest = podMetricsRefreshInFlightRef.current;
+			if (inFlightRequest) {
+				return reuseInFlight ? inFlightRequest : false;
+			}
+
+			const managedRequest = registerController("monitoring", source);
+			const refreshPromise = fetchPodMetricsSnapshot({
+				signal: managedRequest.controller.signal,
+			})
+				.then((payload) => {
+					if (!isPodMetricsSnapshot(payload) || !payload.available) {
+						return false;
+					}
+
+					mergePodMetricsSnapshot(payload);
+					return true;
+				})
+				.catch((error: unknown) => {
+					if (isAbortError(error)) {
+						return false;
+					}
+
+					return false;
+				})
+				.finally(() => {
+					managedRequest.cleanup();
+					podMetricsRefreshInFlightRef.current = null;
+				});
+
+			podMetricsRefreshInFlightRef.current = refreshPromise;
+			return refreshPromise;
+		},
+	);
+
+	useEffect(() => {
+		void refreshPodMetricsSnapshot({
+			source: "auto_monitoring",
+			reuseInFlight: true,
+		});
+
+		const intervalId = window.setInterval(() => {
+			void refreshPodMetricsSnapshot({
+				source: "auto_monitoring",
+				reuseInFlight: true,
+			});
+		}, AUTO_BACKEND_CHECK_INTERVAL_MS);
+
+		return () => {
+			window.clearInterval(intervalId);
+		};
+	}, []);
 
 	useEffect(() => {
 		void refreshBackendSnapshot({

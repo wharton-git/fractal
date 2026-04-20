@@ -13,6 +13,7 @@ import (
 	"fractal-engine/internal/api"
 	"fractal-engine/internal/config"
 	"fractal-engine/internal/metrics"
+	"fractal-engine/internal/podmetrics"
 )
 
 func main() {
@@ -21,10 +22,11 @@ func main() {
 		Level: slog.LevelInfo,
 	}))
 	store := metrics.NewStore(cfg.StartTime)
+	podMetricsService := podmetrics.NewService()
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           api.NewRouter(cfg, store, logger),
+		Handler:           api.NewRouter(cfg, store, logger, podMetricsService),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      60 * time.Second,

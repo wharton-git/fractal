@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-metrics-reader
+  namespace: cloud-scaling-demo
+subjects:
+  - kind: ServiceAccount
+    name: backend-service-account
+    namespace: cloud-scaling-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: backend-metrics-reader

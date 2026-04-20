@@ -1,6 +1,11 @@
 import axios from "axios";
 import { createClientId } from "./id";
-import type { FormState, RequestRecord, TestType } from "../types/demo";
+import type {
+	FormState,
+	PodMetricsSnapshot,
+	RequestRecord,
+	TestType,
+} from "../types/demo";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 
@@ -221,4 +226,21 @@ export const runDemoRequest = async (
 			errorMessage: "Une erreur inattendue est survenue.",
 		};
 	}
+};
+
+export const fetchPodMetricsSnapshot = async (options?: {
+	signal?: AbortSignal;
+}): Promise<PodMetricsSnapshot> => {
+	const response = await axios.get<PodMetricsSnapshot>(
+		`${API_BASE_URL}/api/pods/metrics`,
+		{
+			timeout: 10_000,
+			signal: options?.signal,
+			headers: {
+				Accept: "application/json",
+			},
+		},
+	);
+
+	return response.data;
 };

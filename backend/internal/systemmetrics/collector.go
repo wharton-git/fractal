@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -18,11 +17,8 @@ type ResourceSnapshot struct {
 	CPULogicalCores          int      `json:"cpuLogicalCores"`
 	GOMAXPROCS               int      `json:"goMaxProcs"`
 	CPUQuotaCores            *float64 `json:"cpuQuotaCores,omitempty"`
-	CPUUsageApproxPercent    *float64 `json:"cpuUsageApproxPercent,omitempty"`
 	NetworkRxBytesTotal      *uint64  `json:"networkRxBytesTotal,omitempty"`
 	NetworkTxBytesTotal      *uint64  `json:"networkTxBytesTotal,omitempty"`
-	NetworkRxBytesPerSecond  *float64 `json:"networkRxBytesPerSecond,omitempty"`
-	NetworkTxBytesPerSecond  *float64 `json:"networkTxBytesPerSecond,omitempty"`
 	MemoryGoAllocBytes       uint64   `json:"memoryGoAllocBytes"`
 	MemoryGoSysBytes         uint64   `json:"memoryGoSysBytes"`
 	MemoryCgroupCurrentBytes *uint64  `json:"memoryCgroupCurrentBytes,omitempty"`
@@ -33,22 +29,8 @@ type ResourceSnapshot struct {
 }
 
 type Collector struct {
-	mu            sync.Mutex
-	now           func() time.Time
-	cgroup        cgroupReader
-	lastCPUSample cpuUsageSample
-	lastNetSample networkUsageSample
-}
-
-type cpuUsageSample struct {
-	measuredAt time.Time
-	usageNS    uint64
-}
-
-type networkUsageSample struct {
-	measuredAt time.Time
-	rxBytes    uint64
-	txBytes    uint64
+	now    func() time.Time
+	cgroup cgroupReader
 }
 
 func NewCollector() *Collector {
@@ -59,14 +41,14 @@ func NewCollector() *Collector {
 }
 
 func (c *Collector) Snapshot() ResourceSnapshot {
-	return c.snapshot(true)
+	return c.snapshot()
 }
 
 func (c *Collector) SnapshotStatic() ResourceSnapshot {
-	return c.snapshot(false)
+	return c.snapshot()
 }
 
-func (c *Collector) snapshot(includeCPUUsage bool) ResourceSnapshot {
+func (c *Collector) snapshot() ResourceSnapshot {
 	now := c.now().UTC()
 
 	snapshot := ResourceSnapshot{
@@ -84,7 +66,6 @@ func (c *Collector) snapshot(includeCPUUsage bool) ResourceSnapshot {
 	memoryCurrent := c.cgroup.readMemoryCurrentBytes()
 	memoryLimit, memoryUnlimited := c.cgroup.readMemoryLimitBytes()
 	cpuQuota := c.cgroup.readCPUQuotaCores()
-	cpuUsageNS := c.cgroup.readCPUUsageNanoseconds()
 	networkRxBytes, networkTxBytes := readNetworkTotalsBytes(c.cgroup.procRoot)
 
 	snapshot.MemoryCgroupCurrentBytes = memoryCurrent
@@ -93,120 +74,8 @@ func (c *Collector) snapshot(includeCPUUsage bool) ResourceSnapshot {
 	snapshot.CPUQuotaCores = cpuQuota
 	snapshot.NetworkRxBytesTotal = networkRxBytes
 	snapshot.NetworkTxBytesTotal = networkTxBytes
-	if includeCPUUsage {
-		snapshot.CPUUsageApproxPercent = c.sampleCPUUsage(
-			now,
-			cpuUsageNS,
-			cpuQuota,
-			snapshot.GOMAXPROCS,
-			snapshot.CPULogicalCores,
-		)
-		snapshot.NetworkRxBytesPerSecond, snapshot.NetworkTxBytesPerSecond = c.sampleNetworkUsage(
-			now,
-			networkRxBytes,
-			networkTxBytes,
-		)
-	}
 
 	return snapshot
-}
-
-func (c *Collector) sampleCPUUsage(
-	now time.Time,
-	usageNS *uint64,
-	cpuQuotaCores *float64,
-	goMaxProcs int,
-	cpuLogicalCores int,
-) *float64 {
-	if usageNS == nil {
-		return nil
-	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	previous := c.lastCPUSample
-	c.lastCPUSample = cpuUsageSample{
-		measuredAt: now,
-		usageNS:    *usageNS,
-	}
-
-	if previous.measuredAt.IsZero() || *usageNS < previous.usageNS {
-		return nil
-	}
-
-	elapsedNS := now.Sub(previous.measuredAt).Nanoseconds()
-	if elapsedNS <= 0 {
-		return nil
-	}
-
-	availableCores := resolveAvailableCores(cpuQuotaCores, goMaxProcs, cpuLogicalCores)
-	if availableCores <= 0 {
-		return nil
-	}
-
-	deltaUsageNS := *usageNS - previous.usageNS
-	usagePercent := (float64(deltaUsageNS) / float64(elapsedNS) / availableCores) * 100
-	if usagePercent < 0 {
-		return nil
-	}
-
-	return ptrFloat64(usagePercent)
-}
-
-func (c *Collector) sampleNetworkUsage(
-	now time.Time,
-	rxBytes *uint64,
-	txBytes *uint64,
-) (*float64, *float64) {
-	if rxBytes == nil || txBytes == nil {
-		return nil, nil
-	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	previous := c.lastNetSample
-	c.lastNetSample = networkUsageSample{
-		measuredAt: now,
-		rxBytes:    *rxBytes,
-		txBytes:    *txBytes,
-	}
-
-	if previous.measuredAt.IsZero() ||
-		*rxBytes < previous.rxBytes ||
-		*txBytes < previous.txBytes {
-		return nil, nil
-	}
-
-	elapsedSeconds := now.Sub(previous.measuredAt).Seconds()
-	if elapsedSeconds <= 0 {
-		return nil, nil
-	}
-
-	rxRate := float64(*rxBytes-previous.rxBytes) / elapsedSeconds
-	txRate := float64(*txBytes-previous.txBytes) / elapsedSeconds
-	if rxRate < 0 || txRate < 0 {
-		return nil, nil
-	}
-
-	return ptrFloat64(rxRate), ptrFloat64(txRate)
-}
-
-func resolveAvailableCores(cpuQuotaCores *float64, goMaxProcs int, cpuLogicalCores int) float64 {
-	if cpuQuotaCores != nil && *cpuQuotaCores > 0 {
-		return *cpuQuotaCores
-	}
-
-	if goMaxProcs > 0 {
-		return float64(goMaxProcs)
-	}
-
-	if cpuLogicalCores > 0 {
-		return float64(cpuLogicalCores)
-	}
-
-	return 0
 }
 
 type cgroupReader struct {

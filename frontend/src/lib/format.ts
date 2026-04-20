@@ -35,6 +35,14 @@ export const formatDecimal = (value: number, suffix?: string) => {
 	return suffix ? `${formatted} ${suffix}` : formatted;
 };
 
+export const formatMillicores = (value: number | null | undefined) => {
+	if (value == null || Number.isNaN(value)) {
+		return "n/d";
+	}
+
+	return `${decimalFormatter.format(value)} mCPU`;
+};
+
 export const formatBytes = (value: number | null | undefined) => {
 	if (value == null || Number.isNaN(value)) {
 		return "n/d";

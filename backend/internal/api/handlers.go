@@ -10,22 +10,30 @@ import (
 	"fractal-engine/internal/config"
 	"fractal-engine/internal/load"
 	"fractal-engine/internal/metrics"
+	"fractal-engine/internal/podmetrics"
 	"fractal-engine/internal/systemmetrics"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	cfg       config.Config
-	store     *metrics.Store
-	resources *systemmetrics.Collector
+	cfg        config.Config
+	store      *metrics.Store
+	resources  *systemmetrics.Collector
+	podMetrics *podmetrics.Service
 }
 
-func NewHandler(cfg config.Config, store *metrics.Store, resources *systemmetrics.Collector) *Handler {
+func NewHandler(
+	cfg config.Config,
+	store *metrics.Store,
+	resources *systemmetrics.Collector,
+	podMetrics *podmetrics.Service,
+) *Handler {
 	return &Handler{
-		cfg:       cfg,
-		store:     store,
-		resources: resources,
+		cfg:        cfg,
+		store:      store,
+		resources:  resources,
+		podMetrics: podMetrics,
 	}
 }
 
@@ -88,6 +96,11 @@ func (h *Handler) Status(c *gin.Context) {
 			"hasRecentValue": !snapshot.LastRequest.Timestamp.IsZero(),
 		},
 	})
+}
+
+func (h *Handler) PodMetrics(c *gin.Context) {
+	snapshot := h.podMetrics.Snapshot(c.Request.Context())
+	c.JSON(http.StatusOK, snapshot)
 }
 
 func (h *Handler) CPULoad(c *gin.Context) {
