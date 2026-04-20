@@ -1,0 +1,3 @@
+- Simuler Panne
+- Voir Haute Dispo
+- Stress Apache Benchmark
