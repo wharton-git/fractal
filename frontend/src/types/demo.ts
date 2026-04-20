@@ -33,6 +33,20 @@ export type RequestRecord = {
 	cancelled?: boolean;
 };
 
+export type ResourceSnapshot = {
+	cpuLogicalCores: number;
+	goMaxProcs: number;
+	cpuQuotaCores?: number | null;
+	cpuUsageApproxPercent?: number | null;
+	memoryGoAllocBytes: number;
+	memoryGoSysBytes: number;
+	memoryCgroupCurrentBytes?: number | null;
+	memoryCgroupLimitBytes?: number | null;
+	memoryLimitUnlimited?: boolean;
+	goroutines: number;
+	timestamp: string;
+};
+
 export type StatusPayload = {
 	podName: string;
 	timestamp: string;
@@ -49,6 +63,7 @@ export type StatusPayload = {
 		timestamp: string | null;
 		hasRecentValue: boolean;
 	};
+	resources?: ResourceSnapshot;
 };
 
 export type InfoPayload = {
@@ -61,6 +76,7 @@ export type InfoPayload = {
 	environment: string;
 	region: string;
 	instanceId: string;
+	resources?: ResourceSnapshot;
 };
 
 export type PodObservation = {
@@ -69,6 +85,11 @@ export type PodObservation = {
 	inFlightRequests: number | null;
 	errorCount: number | null;
 	averageResponseTimeMs: number | null;
+	cpuUsageApproxPercent: number | null;
+	cpuQuotaCores: number | null;
+	memoryCgroupCurrentBytes: number | null;
+	memoryCgroupLimitBytes: number | null;
+	memoryLimitUnlimited: boolean;
 	lastSeen: string;
 	hasBackendSnapshot: boolean;
 };
@@ -76,14 +97,25 @@ export type PodObservation = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null;
 
+const isResourceSnapshot = (value: unknown): value is ResourceSnapshot =>
+	isRecord(value) &&
+	typeof value.cpuLogicalCores === "number" &&
+	typeof value.goMaxProcs === "number" &&
+	typeof value.memoryGoAllocBytes === "number" &&
+	typeof value.memoryGoSysBytes === "number" &&
+	typeof value.goroutines === "number" &&
+	typeof value.timestamp === "string";
+
 export const isStatusPayload = (value: unknown): value is StatusPayload =>
 	isRecord(value) &&
 	typeof value.podName === "string" &&
 	typeof value.requestCount === "number" &&
-	typeof value.averageResponseTimeMs === "number";
+	typeof value.averageResponseTimeMs === "number" &&
+	(!("resources" in value) || value.resources == null || isResourceSnapshot(value.resources));
 
 export const isInfoPayload = (value: unknown): value is InfoPayload =>
 	isRecord(value) &&
 	typeof value.hostname === "string" &&
 	typeof value.podName === "string" &&
-	typeof value.environment === "string";
+	typeof value.environment === "string" &&
+	(!("resources" in value) || value.resources == null || isResourceSnapshot(value.resources));

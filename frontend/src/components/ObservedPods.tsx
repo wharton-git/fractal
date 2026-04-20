@@ -1,7 +1,9 @@
-import { CheckCircle2, CircleAlert, Server } from "lucide-react";
+import { ArrowDownUp, CheckCircle2, CircleAlert, ClockFading, Cpu, Globe, MemoryStick, OctagonX, Server } from "lucide-react";
 import {
 	formatAverage,
+	formatBytes,
 	formatCompactTimestamp,
+	formatDecimal,
 } from "../lib/format";
 import type { PodObservation } from "../types/demo";
 import { SectionHeader } from "./SectionHeader";
@@ -60,9 +62,14 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 										<div className="min-w-0">
 											<div className="flex flex-wrap items-center justify-between gap-2 font-semibold text-primary">
 												<span className="mr-2 text-sm">{pod.podName}</span>
-												<span className="text-[0.7rem] text-base-content/60">
-													(Dernier passage a {formatCompactTimestamp(pod.lastSeen)})
-												</span>
+												<div className="flex items-center gap-2 badge badge-primary text-primary-content">
+													<div>
+														<ClockFading size="15"/>
+													</div>
+													<div className="text-[0.7rem] text-primary-content">
+														{formatCompactTimestamp(pod.lastSeen)}
+													</div>
+												</div>
 											</div>
 											{!pod.hasBackendSnapshot ? (
 												<p className="mt-1 text-xs text-base-content/52">
@@ -71,31 +78,54 @@ export function ObservedPods({ pods }: ObservedPodsProps) {
 											) : null}
 										</div>
 
-										<div className="flex justify-between">
-											<div>
-												<p className="text-xs text-base-content/55">Requetes</p>
-												<p className="text-xs font-semibold text-primary">
+										<div className="flex items-center justify-between ">
+											<div className="flex items-center gap-1">
+												<div>
+													<Globe size="17" />
+												</div>
+												<div className="text-xs">
 													{pod.requestCount ?? "n/d"}
-												</p>
+												</div>
 											</div>
-											<div>
-												<p className="text-xs text-base-content/55">In flight</p>
-												<p className="text-xs font-semibold text-primary">
-													{pod.inFlightRequests ?? "n/d"}
-												</p>
-											</div>
-											<div>
-												<p className="text-xs text-base-content/55">Erreurs</p>
-												<p className="text-xs font-semibold text-primary">
+											<div className="flex items-center gap-1">
+												<div>
+													<OctagonX size="17" />
+												</div>
+												<div className="text-xs">
 													{pod.errorCount ?? "n/d"}
-												</p>
+												</div>
 											</div>
+											<div className="flex items-center gap-1">
+												<div>
+													<ArrowDownUp size="17" />
+												</div>
+												<div className="text-xs">
+													{pod.averageResponseTimeMs === null ? "n/d" : formatAverage(pod.averageResponseTimeMs)}
+												</div>
+											</div>
+											<div className="flex items-center gap-1">
+												<div>
+													<MemoryStick size="17" />
+												</div>
+												<div className="text-xs">
+													{formatBytes(pod.memoryCgroupCurrentBytes)} / {pod.memoryLimitUnlimited ? "illimitee" : formatBytes(pod.memoryCgroupLimitBytes)}
+												</div>
+											</div>
+											<div className="flex items-center gap-1">
+												<div>
+													<Cpu size="17" />
+												</div>
+												<div className="text-xs">
+													{pod.cpuUsageApproxPercent === null ? "n/d" : formatDecimal(pod.cpuUsageApproxPercent, "%")}
+												</div>
+											</div>
+
 											<div>
-												<p className="text-xs text-base-content/55">Latence moy.</p>
+												{/* <p className="text-[0.68rem] text-base-content/55">Quota CPU</p> */}
 												<p className="text-xs font-semibold text-primary">
-													{pod.averageResponseTimeMs === null
+													{pod.cpuQuotaCores === null
 														? "n/d"
-														: formatAverage(pod.averageResponseTimeMs)}
+														: formatDecimal(pod.cpuQuotaCores, "coeurs")}
 												</p>
 											</div>
 										</div>

@@ -100,9 +100,9 @@ const isTrackablePodName = (
 ): podName is string =>
 	Boolean(
 		podName &&
-			podName !== "unreachable" &&
-			podName !== "cancelled" &&
-			podName !== "unknown",
+		podName !== "unreachable" &&
+		podName !== "cancelled" &&
+		podName !== "unknown",
 	);
 
 const getMostRecentTimestamp = (currentTimestamp: string | null, nextTimestamp: string) => {
@@ -294,6 +294,7 @@ function App() {
 			request.ok && isStatusPayload(request.response) ? request.response : null;
 		const infoPayload =
 			request.ok && isInfoPayload(request.response) ? request.response : null;
+		const resourceSnapshot = statusPayload?.resources ?? infoPayload?.resources ?? null;
 		const podName = statusPayload?.podName ?? infoPayload?.podName ?? request.podName;
 		const lastSeenAt =
 			statusPayload?.timestamp ?? infoPayload?.timestamp ?? request.timestamp;
@@ -314,6 +315,24 @@ function App() {
 							statusPayload?.averageResponseTimeMs ??
 							previous?.averageResponseTimeMs ??
 							null,
+						cpuUsageApproxPercent:
+							resourceSnapshot?.cpuUsageApproxPercent ??
+							previous?.cpuUsageApproxPercent ??
+							null,
+						cpuQuotaCores:
+							resourceSnapshot?.cpuQuotaCores ?? previous?.cpuQuotaCores ?? null,
+						memoryCgroupCurrentBytes:
+							resourceSnapshot?.memoryCgroupCurrentBytes ??
+							previous?.memoryCgroupCurrentBytes ??
+							null,
+						memoryCgroupLimitBytes:
+							resourceSnapshot?.memoryCgroupLimitBytes ??
+							previous?.memoryCgroupLimitBytes ??
+							null,
+						memoryLimitUnlimited:
+							resourceSnapshot?.memoryLimitUnlimited ??
+							previous?.memoryLimitUnlimited ??
+							false,
 						lastSeen: getMostRecentTimestamp(previous?.lastSeen ?? null, lastSeenAt),
 						hasBackendSnapshot:
 							statusPayload !== null || previous?.hasBackendSnapshot === true,
@@ -828,23 +847,6 @@ function App() {
 
 				<div className="grid grid-cols-[1.02fr_0.98fr] gap-6">
 					<div className="flex flex-col gap-6">
-						<div id="test-section" className="scroll-mt-24">
-							<ControlPanel
-								form={form}
-								isRunning={isRunning}
-								sequenceProgress={sequenceProgress}
-								isStopRequested={isStopRequested}
-								onChange={(partial) =>
-									setForm((current) => ({
-										...current,
-										...partial,
-									}))
-								}
-								onRunSingle={handleRunSingle}
-								onRunSeries={handleRunSeries}
-								onStopTests={handleStopTests}
-							/>
-						</div>
 						<div id="backend-section" className="scroll-mt-24">
 							<BackendMonitoring
 								backendState={backendState}
@@ -862,6 +864,23 @@ function App() {
 								onToggleMonitoring={() => {
 									void handleToggleMonitoring();
 								}}
+							/>
+						</div>
+						<div id="test-section" className="scroll-mt-24">
+							<ControlPanel
+								form={form}
+								isRunning={isRunning}
+								sequenceProgress={sequenceProgress}
+								isStopRequested={isStopRequested}
+								onChange={(partial) =>
+									setForm((current) => ({
+										...current,
+										...partial,
+									}))
+								}
+								onRunSingle={handleRunSingle}
+								onRunSeries={handleRunSeries}
+								onStopTests={handleStopTests}
 							/>
 						</div>
 					</div>

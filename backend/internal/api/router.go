@@ -8,6 +8,7 @@ import (
 
 	"fractal-engine/internal/config"
 	"fractal-engine/internal/metrics"
+	"fractal-engine/internal/systemmetrics"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -34,7 +35,7 @@ func NewRouter(cfg config.Config, store *metrics.Store, logger *slog.Logger) *gi
 		MaxAge:           12 * time.Hour,
 	}))
 
-	handler := NewHandler(cfg, store)
+	handler := NewHandler(cfg, store, systemmetrics.NewCollector())
 
 	api := router.Group("/api")
 	{

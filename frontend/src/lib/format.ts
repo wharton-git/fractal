@@ -9,6 +9,10 @@ const compactDateFormatter = new Intl.DateTimeFormat("fr-FR", {
 	second: "2-digit",
 });
 
+const decimalFormatter = new Intl.NumberFormat("fr-FR", {
+	maximumFractionDigits: 2,
+});
+
 export const formatTimestamp = (timestamp: string) =>
 	dateFormatter.format(new Date(timestamp));
 
@@ -25,6 +29,32 @@ export const formatAverage = (durationMs: number) =>
 
 export const formatPercentage = (value: number) =>
 	`${Math.round(value * 100)}%`;
+
+export const formatDecimal = (value: number, suffix?: string) => {
+	const formatted = decimalFormatter.format(value);
+	return suffix ? `${formatted} ${suffix}` : formatted;
+};
+
+export const formatBytes = (value: number | null | undefined) => {
+	if (value == null || Number.isNaN(value)) {
+		return "n/d";
+	}
+
+	if (value === 0) {
+		return "0 B";
+	}
+
+	const units = ["B", "KB", "MB", "GB", "TB"];
+	let size = value;
+	let unitIndex = 0;
+
+	while (size >= 1024 && unitIndex < units.length - 1) {
+		size /= 1024;
+		unitIndex += 1;
+	}
+
+	return `${decimalFormatter.format(size)} ${units[unitIndex]}`;
+};
 
 export const serializePayload = (payload: unknown) => {
 	try {

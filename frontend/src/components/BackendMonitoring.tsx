@@ -90,7 +90,7 @@ export function BackendMonitoring({
 					<div>
 						<p className="mb-2 text-xs text-base-content/58">Etat</p>
 						<div className="flex flex-wrap items-center gap-2">
-							<span className={stateBadgeClass(backendState)}>
+							<span className={stateBadgeClass(backendState) + ` text-sm`} >
 								{stateLabel(backendState)}
 							</span>
 							{isCheckingBackend ? (
@@ -156,7 +156,7 @@ export function BackendMonitoring({
 					</div>
 				) : null}
 
-				<div className="grid grid-cols-2 gap-4">
+				{/* <div className="grid grid-cols-2 gap-4">
 					<div className="rounded-[1.5rem] border border-base-300/75 bg-base-200/45 p-5">
 						<div className="mb-4 flex items-center gap-2 text-xs text-base-content/60">
 							<Clock3 className="size-4" />
@@ -228,7 +228,7 @@ export function BackendMonitoring({
 							)}
 						</div>
 					</div>
-				</div>
+				</div> */}
 			</div>
 		</section>
 	);

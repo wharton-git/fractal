@@ -10,19 +10,22 @@ import (
 	"fractal-engine/internal/config"
 	"fractal-engine/internal/load"
 	"fractal-engine/internal/metrics"
+	"fractal-engine/internal/systemmetrics"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	cfg   config.Config
-	store *metrics.Store
+	cfg       config.Config
+	store     *metrics.Store
+	resources *systemmetrics.Collector
 }
 
-func NewHandler(cfg config.Config, store *metrics.Store) *Handler {
+func NewHandler(cfg config.Config, store *metrics.Store, resources *systemmetrics.Collector) *Handler {
 	return &Handler{
-		cfg:   cfg,
-		store: store,
+		cfg:       cfg,
+		store:     store,
+		resources: resources,
 	}
 }
 
@@ -47,30 +50,35 @@ func (h *Handler) Ready(c *gin.Context) {
 }
 
 func (h *Handler) Info(c *gin.Context) {
+	resources := h.resources.SnapshotStatic()
+
 	c.JSON(http.StatusOK, gin.H{
 		"hostname":    h.cfg.Hostname,
 		"podName":     h.cfg.Hostname,
 		"pid":         os.Getpid(),
-		"timestamp":   timestamp(),
+		"timestamp":   resources.Timestamp,
 		"version":     h.cfg.Version,
 		"uptime":      humanDuration(time.Since(h.cfg.StartTime)),
 		"environment": h.cfg.Environment,
 		"region":      emptyAsUnknown(h.cfg.Region),
 		"instanceId":  emptyAsUnknown(h.cfg.InstanceID),
+		"resources":   resources,
 	})
 }
 
 func (h *Handler) Status(c *gin.Context) {
 	snapshot := h.store.Snapshot()
+	resources := h.resources.Snapshot()
 
 	c.JSON(http.StatusOK, gin.H{
 		"podName":               h.cfg.Hostname,
-		"timestamp":             timestamp(),
+		"timestamp":             resources.Timestamp,
 		"requestCount":          snapshot.RequestCount,
 		"averageResponseTimeMs": snapshot.AverageResponseMS,
 		"errorCount":            snapshot.ErrorCount,
 		"inFlightRequests":      snapshot.InFlightRequests,
 		"uptime":                humanDuration(time.Since(snapshot.StartedAt)),
+		"resources":             resources,
 		"lastRequest": gin.H{
 			"method":         snapshot.LastRequest.Method,
 			"path":           snapshot.LastRequest.Path,

@@ -47,7 +47,7 @@ export function HeroSection({
 					</div>
 
 					<div className="space-y-4">
-						<h1 className="max-w-3xl text-base font-semibold tracking-tight text-primary">
+						<h1 className="max-w-3xl text-xl font-semibold tracking-tight text-primary">
 							Une APP de démo GKE concue pour l'autoscaling
 							et la haute disponibilite.
 						</h1>
@@ -148,9 +148,9 @@ export function HeroSection({
 								</div>
 								<div className="rounded-2xl border border-white/10 bg-white/6 p-3">
 									<p className="text-xs uppercase tracking-[0.22em] text-white/55">
-										Probe-ready
+										Plateform
 									</p>
-									<p className="mt-2 text-xs font-semibold">Oui</p>
+									<p className="mt-2 text-xs font-semibold">GCP</p>
 								</div>
 							</div>
 						</div>
